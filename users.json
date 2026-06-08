@@ -17,6 +17,15 @@
       "start": "2026-06-08",
       "expiry": null,
       "notes": ""
+    },
+    {
+      "name": "可苦可乐",
+      "key": "67905D07308A0776",
+      "tool": "matcher",
+      "type": "lifetime",
+      "start": "2026-06-08",
+      "expiry": null,
+      "notes": ""
     }
   ],
   "pricing": {
