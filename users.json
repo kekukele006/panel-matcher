@@ -4,16 +4,7 @@
       "name": "Lisa",
       "key": "327FD61AD92EC8D6",
       "tool": "matcher",
-      "type": "like_free",
-      "start": "2026-06-08",
-      "expiry": null,
-      "notes": ""
-    },
-    {
-      "name": "Lisa",
-      "key": "86B9076143272C25",
-      "tool": "stata",
-      "type": "like_free",
+      "type": "lifetime",
       "start": "2026-06-08",
       "expiry": null,
       "notes": ""
