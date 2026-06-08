@@ -297,27 +297,35 @@ function genQuickKeyAndCopy() {
 }
 
 async function quickActivate() {
-    var result = genQuickKey();
-    if (!result) return;
+    var name = document.getElementById('quickName').value.trim();
+    if (!name) { showMsg('请输入昵称', 'error'); return; }
     var tool = document.getElementById('quickTool').value;
-    var existing = USERS.findIndex(function(u){ return u.name === result.name && u.tool === tool; });
-    if (existing >= 0) USERS.splice(existing, 1);
-    USERS.push({
-        name: result.name,
-        key: result.key,
-        tool: tool,
-        type: 'like_free',
-        start: new Date().toISOString().split('T')[0],
-        expiry: null,
-        notes: ''
-    });
-    await pushUsers('激活: ' + result.name);
-    document.getElementById('quickName').value = '';
-    var el = document.getElementById('quickResult');
-    el.style.display = 'block';
-    el.style.background = '#f0fdf4';
-    el.innerHTML = '&#9989; 已保存！激活码: <strong style="font-family:monospace;font-size:16px;letter-spacing:2px">' + result.key + '</strong>  |  用户: ' + escHtml(result.name) + '  |  工具: ' + (tool==='both'?'两个':(tool==='stata'?'Stata':'变量匹配')) + '  |  <span style="color:#16a34a">终身免费</span>';
-    navigator.clipboard.writeText(result.key).catch(function(){});
+
+    if (tool === 'both') {
+        // 生成两个独立的密钥和用户记录
+        var keyM = CryptoJS.MD5(name.toLowerCase() + LIC_SECRET_MATCHER).toString().substring(0, 16).toUpperCase();
+        var keyS = CryptoJS.MD5(name.toLowerCase() + LIC_SECRET_STATA).toString().substring(0, 16).toUpperCase();
+        USERS = USERS.filter(function(u){ return !(u.name === name && (u.tool==='matcher'||u.tool==='stata')); });
+        USERS.push({name:name, key:keyM, tool:'matcher', type:'like_free', start:new Date().toISOString().split('T')[0], expiry:null, notes:''});
+        USERS.push({name:name, key:keyS, tool:'stata', type:'like_free', start:new Date().toISOString().split('T')[0], expiry:null, notes:''});
+        await pushUsers('激活(两个): ' + name);
+        document.getElementById('quickName').value = '';
+        var el = document.getElementById('quickResult');
+        el.style.display = 'block'; el.style.background = '#f0fdf4';
+        el.innerHTML = '&#9989; 两条已保存！<br>变量匹配激活码: <strong style="font-family:monospace;font-size:15px;letter-spacing:2px">' + keyM + '</strong><br>Stata激活码: <strong style="font-family:monospace;font-size:15px;letter-spacing:2px">' + keyS + '</strong><br>用户: ' + escHtml(name) + ' | 终身免费';
+        navigator.clipboard.writeText('变量匹配: ' + keyM + '\nStata: ' + keyS).catch(function(){});
+    } else {
+        var secret = (tool === 'stata') ? LIC_SECRET_STATA : LIC_SECRET_MATCHER;
+        var key = CryptoJS.MD5(name.toLowerCase() + secret).toString().substring(0, 16).toUpperCase();
+        USERS = USERS.filter(function(u){ return !(u.name === name && u.tool === tool); });
+        USERS.push({name:name, key:key, tool:tool, type:'like_free', start:new Date().toISOString().split('T')[0], expiry:null, notes:''});
+        await pushUsers('激活: ' + name);
+        document.getElementById('quickName').value = '';
+        var el = document.getElementById('quickResult');
+        el.style.display = 'block'; el.style.background = '#f0fdf4';
+        el.innerHTML = '&#9989; 已保存！激活码: <strong style="font-family:monospace;font-size:16px;letter-spacing:2px">' + key + '</strong> | 用户: ' + escHtml(name) + ' | 工具: ' + (tool==='stata'?'Stata':'变量匹配') + ' | 终身免费';
+        navigator.clipboard.writeText(key).catch(function(){});
+    }
     updateSummary();
     renderUserTable();
 }
