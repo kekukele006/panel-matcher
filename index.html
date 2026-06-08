@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面板数据变量匹配工具</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+/* ========== 全局 ========== */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--primary:#2563eb;--primary-dark:#1d4ed8;--primary-light:#dbeafe;
+--success:#16a34a;--warning:#f59e0b;--error:#dc2626;
+--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;
+--gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;--gray-800:#1f2937;
+--radius:8px;--shadow:0 1px 3px rgba(0,0,0,.1);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;line-height:1.6}
+
+/* ========== 头部 ========== */
+.header{background:#fff;border-bottom:1px solid var(--gray-200);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:50}
+.header h1{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header h1 .icon{width:32px;height:32px;background:var(--primary);color:#fff;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:16px}
+.header-actions{display:flex;gap:8px}
+
+/* ========== 步骤条 ========== */
+.steps-bar{background:#fff;border-bottom:1px solid var(--gray-200);padding:16px 16px;display:flex;align-items:center;justify-content:center;overflow-x:auto;gap:4px}
+.step-item{display:flex;align-items:center;gap:6px;white-space:nowrap;opacity:.4;transition:opacity .2s;cursor:pointer;flex-shrink:0}
+.step-item.active{opacity:1}.step-item.done{opacity:.7}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--gray-200);color:var(--gray-500);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;transition:all .3s;flex-shrink:0}
+.step-item.active .step-num{background:var(--primary);color:#fff}
+.step-item.done .step-num{background:var(--success);color:#fff}
+.step-label{font-size:12px;color:var(--gray-600);font-weight:500}
+.step-item.active .step-label{color:var(--primary);font-weight:700}
+.step-line{width:24px;height:2px;background:var(--gray-200);flex-shrink:0}
+
+/* ========== 主内容 ========== */
+.main-container{max-width:860px;margin:20px auto;padding:0 16px}
+.step-content{display:none;animation:fadeIn .3s ease}
+.step-content.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 24px;margin-bottom:16px}
+.card h2{font-size:17px;font-weight:700;margin-bottom:6px}
+.card .subtitle{color:var(--gray-500);font-size:13px;margin-bottom:20px}
+
+/* ========== 上传区 ========== */
+.upload-zone{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--primary);background:var(--primary-light)}
+.upload-zone .upload-icon{font-size:40px;margin-bottom:8px}
+.upload-zone .upload-text{font-size:15px;color:var(--gray-600)}
+.upload-zone .upload-hint{font-size:12px;color:var(--gray-400);margin-top:4px}
+.upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* ========== 文件列表 ========== */
+.file-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--gray-50);border-radius:var(--radius);margin-bottom:8px;border:1px solid var(--gray-200);font-size:13px}
+.file-item .file-icon{width:36px;height:36px;background:#e0f2e9;color:var(--success);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;margin-right:10px}
+.file-item .file-details{flex:1;min-width:0}
+.file-item .file-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-item .file-meta{font-size:11px;color:var(--gray-500)}
+.file-item .btn-del{background:none;border:1px solid var(--gray-200);color:var(--error);cursor:pointer;padding:4px 10px;border-radius:var(--radius);font-size:12px;flex-shrink:0}
+.file-item .btn-del:hover{background:#fef2f2;border-color:var(--error)}
+.file-item.rejected{background:#fef2f2;border-color:#fecaca}
+.file-item.rejected .file-icon{background:#fef2f2;color:var(--error)}
+
+/* ========== 表单 ========== */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-weight:600;font-size:13px;margin-bottom:4px;color:var(--gray-700)}
+.form-group .hint{font-size:11px;color:var(--gray-400);margin-top:2px}
+select,input[type="text"],input[type="number"],textarea{width:100%;padding:9px 12px;border:1px solid var(--gray-300);border-radius:var(--radius);font-size:13px;font-family:inherit;transition:border-color .2s;background:#fff}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+textarea{min-height:80px;resize:vertical}
+.checkbox-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px}
+.checkbox-item{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);cursor:pointer;transition:all .2s;background:#fff;font-size:13px}
+.checkbox-item:hover{border-color:var(--primary)}
+.checkbox-item.checked{background:var(--primary-light);border-color:var(--primary)}
+.checkbox-item input[type="checkbox"]{accent-color:var(--primary);width:14px;height:14px}
+.option-group{display:flex;gap:8px;flex-wrap:wrap}
+.option-tag{padding:7px 14px;border:1px solid var(--gray-300);border-radius:var(--radius);cursor:pointer;font-size:13px;transition:all .2s;background:#fff;user-select:none}
+.option-tag:hover{border-color:var(--primary)}
+.option-tag.selected{background:var(--primary-light);border-color:var(--primary);color:var(--primary);font-weight:600}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--gray-50);border-radius:var(--radius);margin-bottom:10px;font-size:13px}
+.toggle-switch{position:relative;width:44px;height:26px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--gray-300);border-radius:13px;cursor:pointer;transition:background .3s}
+.toggle-slider::before{content:"";position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .3s}
+.toggle-switch input:checked+.toggle-slider{background:var(--primary)}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(18px)}
+
+/* ========== 关键词标签 ========== */
+.keyword-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:28px;padding:6px;border:1px solid var(--gray-200);border-radius:var(--radius);background:#fff}
+.keyword-tags:empty::after{content:"输入关键词后按回车添加";color:var(--gray-400);font-size:12px}
+.keyword-tag{display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--primary-light);color:var(--primary-dark);border-radius:14px;font-size:12px;font-weight:500}
+.keyword-tag .tag-remove{cursor:pointer;font-weight:700;font-size:15px;line-height:1;opacity:.6}
+.keyword-tag .tag-remove:hover{opacity:1;color:var(--error)}
+
+/* ========== 结果区 ========== */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:16px 0}
+.summary-card{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;text-align:center}
+.summary-card .num{font-size:24px;font-weight:700;color:var(--primary)}
+.summary-card .label{font-size:12px;color:var(--gray-500);margin-top:2px}
+.summary-card.ok .num{color:var(--success)}.summary-card.warn .num{color:var(--warning)}.summary-card.err .num{color:var(--error)}
+.preview-table-wrapper{overflow-x:auto;max-height:360px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:var(--radius);margin-top:12px}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+.preview-table th{background:var(--gray-50);padding:7px 10px;text-align:left;font-weight:600;border-bottom:2px solid var(--gray-200);position:sticky;top:0}
+.preview-table td{padding:5px 10px;border-bottom:1px solid var(--gray-100);max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.preview-table tr:hover td{background:var(--primary-light)}
+
+/* ========== 按钮 ========== */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:9px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:none;font-family:inherit}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover:not(:disabled){background:var(--primary-dark)}
+.btn-secondary{background:#fff;color:var(--gray-700);border:1px solid var(--gray-300)}.btn-secondary:hover:not(:disabled){background:var(--gray-50)}
+.btn-success{background:var(--success);color:#fff}.btn-success:hover:not(:disabled){background:#15803d}
+.btn-outline{background:#fff;color:var(--primary);border:1px solid var(--primary)}.btn-outline:hover:not(:disabled){background:var(--primary-light)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-lg{padding:12px 28px;font-size:15px}
+
+/* ========== 其他 ========== */
+.footer-nav{display:flex;justify-content:space-between;align-items:center;padding:12px 0}
+.alert{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.alert-info{background:var(--primary-light);color:var(--primary-dark);border:1px solid #bfdbfe}
+.alert-warn{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.alert-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.alert-success{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--gray-300);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:32px;color:var(--gray-400)}
+.floating-error{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--error);color:#fff;padding:10px 20px;border-radius:var(--radius);font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.15);max-width:480px;text-align:center}
+@media(max-width:600px){.card{padding:20px 14px}.step-label{font-size:10px}.checkbox-list{grid-template-columns:repeat(2,1fr)}}
+
+/* ========== 历史弹窗 ========== */
+.history-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.history-modal.show{display:flex}
+.history-panel{background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:75vh;overflow-y:auto}
+.history-table{width:100%;border-collapse:collapse;font-size:12px}
+.history-table th{background:var(--gray-50);padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid var(--gray-200)}
+.history-table td{padding:8px 10px;border-bottom:1px solid var(--gray-100);vertical-align:top}
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:150;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.loading-overlay.show{display:flex}
+.footer{padding:16px;text-align:center;font-size:11px;color:var(--gray-400)}
+.footer a{color:var(--gray-500)}
+</style>
+</head>
+<body>
+
+<!-- 头部 -->
+<div class="header">
+<h1><span class="icon">&#9776;</span>面板数据变量匹配工具</h1>
+<div class="header-actions">
+<button class="btn btn-outline btn-sm" onclick="showHistory()">历史记录</button>
+<button class="btn btn-outline btn-sm" onclick="resetAll()">重新开始</button>
+</div>
+</div>
+
+<!-- 加载遮罩 -->
+<div class="loading-overlay" id="loadingOverlay">
+<div class="spinner" style="width:40px;height:40px;border-width:3px"></div>
+<div style="font-size:14px;color:var(--gray-600)" id="loadingMsg">处理中...</div>
+</div>
+
+<!-- 步骤条 -->
+<div class="steps-bar" id="stepsBar">
+<div class="step-item active" data-step="1"><span class="step-num">1</span><span class="step-label">上传基准数据</span></div>
+<div class="step-line"></div>
+<div class="step-item" data-step="2"><span class="step-num">2</span><span class="step-label">选择索引列</span></div>
+<div class="step-line"></div>
+<div class="step-item" data-step="3"><span class="step-num">3</span><span class="step-label">上传原始数据</span></div>
+<div class="step-line"></div>
+<div class="step-item" data-step="4"><span class="step-num">4</span><span class="step-label">配置关键词</span></div>
+<div class="step-line"></div>
+<div class="step-item" data-step="5"><span class="step-num">5</span><span class="step-label">执行匹配</span></div>
+<div class="step-line"></div>
+<div class="step-item" data-step="6"><span class="step-num">6</span><span class="step-label">下载结果</span></div>
+</div>
+
+<!-- 主内容 -->
+<div class="main-container" id="mainContainer">
+
+<!-- 第1步 -->
+<div class="step-content active" data-step="1">
+<div class="card">
+<h2>第1步：上传基准面板数据</h2>
+<p class="subtitle">上传包含 firm_id 和 year 等索引列的面板数据文件，所有变量都将匹配到此文件中。</p>
+<div class="alert alert-info" style="font-size:12px">提示：基准面板数据是变量匹配的"底座"，请确保包含用于匹配的索引列（如 firm_id、year）。文件不会上传到服务器，仅在您的浏览器中处理。</div>
+<div class="upload-zone" id="baseUploadZone">
+<div class="upload-icon">&#128194;</div>
+<div class="upload-text">拖拽文件到此处，或点击选择</div>
+<div class="upload-hint">支持 .xlsx、.xls 格式</div>
+<input type="file" id="baseFileInput" accept=".xlsx,.xls" onchange="handleBaseFile(this)">
+</div>
+<div id="baseFileInfo"></div>
+<div class="form-group" id="baseSheetGroup" style="display:none;margin-top:12px">
+<label>选择工作表（Sheet）</label>
+<select id="baseSheetSelect" onchange="onBaseSheetChange()"></select>
+</div>
+<div id="basePreview"></div>
+</div>
+<div class="footer-nav"><span></span><button class="btn btn-primary" id="btnStep1" disabled onclick="goToStep(2)">下一步 &#8594;</button></div>
+</div>
+
+<!-- 第2步 -->
+<div class="step-content" data-step="2">
+<div class="card">
+<h2>第2步：选择索引列</h2>
+<p class="subtitle">索引列用于将原始数据与基准面板合并。通常选择 firm_id（公司标识）和 year（年份）。</p>
+<div id="indexColList" class="checkbox-list"><p style="color:var(--gray-400);font-size:13px">请先完成第1步，上传基准数据。</p></div>
+</div>
+<div class="footer-nav"><button class="btn btn-secondary" onclick="goToStep(1)">&#8592; 上一步</button><button class="btn btn-primary" id="btnStep2" disabled onclick="goToStep(3)">下一步 &#8594;</button></div>
+</div>
+
+<!-- 第3步 -->
+<div class="step-content" data-step="3">
+<div class="card">
+<h2>第3步：上传原始数据文件</h2>
+<p class="subtitle">上传包含待匹配变量的 Excel 文件，可批量上传多个。系统会自动提取包含关键词的列。</p>
+<div class="alert alert-info" style="font-size:12px">提示：每个文件都会被扫描，只有包含关键词的列才会被提取。文件不会被修改或上传，全程在您的浏览器中处理。</div>
+<div class="upload-zone" id="sourcesUploadZone">
+<div class="upload-icon">&#128193;</div>
+<div class="upload-text">拖拽多个文件到此处，或点击选择</div>
+<div class="upload-hint">支持 .xlsx、.xls 格式，可一次选择多个文件</div>
+<input type="file" id="sourcesFileInput" accept=".xlsx,.xls" multiple onchange="handleSourceFiles(this)">
+</div>
+<div id="sourcesFileList" style="margin-top:12px"><p class="empty-state" style="padding:16px">尚未上传原始数据文件</p></div>
+</div>
+<div class="footer-nav"><button class="btn btn-secondary" onclick="goToStep(2)">&#8592; 上一步</button><button class="btn btn-primary" id="btnStep3" disabled onclick="goToStep(4)">下一步 &#8594;</button></div>
+</div>
+
+<!-- 第4步 -->
+<div class="step-content" data-step="4">
+<div class="card">
+<h2>第4步：配置关键词</h2>
+<p class="subtitle">输入关键词，用于从原始数据文件列名中匹配目标变量。</p>
+<div class="form-group">
+<label>方式一：手动输入关键词</label>
+<p class="hint">在输入框中输入关键词，按回车添加。例如：subsidy、innovation、RD、patent</p>
+<input type="text" id="keywordInput" placeholder="输入关键词后按回车添加..." onkeydown="if(event.key==='Enter'){event.preventDefault();addKeyword()}">
+<div class="keyword-tags" id="keywordTags"></div>
+</div>
+<div class="form-group" style="margin-top:16px">
+<label>方式二：上传关键词文件（Excel第一列）</label>
+<div style="display:flex;align-items:center;gap:8px">
+<input type="file" id="keywordFileInput" accept=".xlsx,.xls" onchange="handleKeywordFile(this)" style="max-width:260px">
+<span id="keywordFileStatus" style="font-size:12px;color:var(--gray-500)"></span>
+</div>
+</div>
+<div class="form-group" style="margin-top:16px">
+<label>匹配模式</label>
+<div class="option-group" id="matchModeGroup">
+<span class="option-tag selected" data-value="contains" onclick="selectOption(this,'matchModeGroup')">包含匹配（推荐）</span>
+<span class="option-tag" data-value="regex" onclick="selectOption(this,'matchModeGroup')">正则匹配</span>
+</div>
+<p class="hint" id="matchModeHint">列名包含关键词即视为匹配。如关键词"subsidy"可匹配"subsidy_amount"。</p>
+</div>
+<div class="form-group">
+<label><input type="checkbox" id="caseSensitive" style="width:auto"> 区分大小写（默认不区分）</label>
+</div>
+</div>
+<div class="footer-nav"><button class="btn btn-secondary" onclick="goToStep(3)">&#8592; 上一步</button><button class="btn btn-primary" id="btnStep4" onclick="goToStep(5)">下一步 &#8594;</button></div>
+</div>
+
+<!-- 第5步 -->
+<div class="step-content" data-step="5">
+<div class="card">
+<h2>第5步：匹配选项 & 执行</h2>
+<p class="subtitle">设置匹配参数，确认无误后点击"开始匹配"。</p>
+<div class="form-group">
+<label>firm_id 补齐位数</label>
+<div style="display:flex;align-items:center;gap:8px">
+<label><input type="checkbox" id="enableFirmIdPad" checked onchange="toggleFirmIdPad()">启用补齐</label>
+<input type="number" id="firmIdWidth" value="6" min="1" max="20" style="width:70px">
+<span style="font-size:12px;color:var(--gray-500)">位</span>
+</div>
+</div>
+<div class="toggle-row">
+<div><strong>遍历所有 Sheet</strong><br><span style="font-size:11px;color:var(--gray-500)">开启后检查每个Excel的全部工作表</span></div>
+<label class="toggle-switch"><input type="checkbox" id="scanAllSheets"><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div><strong>生成匹配日志</strong><br><span style="font-size:11px;color:var(--gray-500)">生成一个记录每个文件匹配结果的日志文件</span></div>
+<label class="toggle-switch"><input type="checkbox" id="generateLog" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="form-group" style="margin-top:12px">
+<label>重名列处理策略</label>
+<div class="option-group" id="dupHandleGroup">
+<span class="option-tag selected" data-value="rename">重命名（推荐）</span>
+<span class="option-tag" data-value="overwrite">覆盖</span>
+<span class="option-tag" data-value="skip">跳过</span>
+</div>
+</div>
+<div id="matchConfigSummary" style="font-size:12px;background:var(--gray-50);padding:12px;border-radius:var(--radius);margin-bottom:16px"></div>
+<div style="text-align:center">
+<button class="btn btn-primary btn-lg" id="btnMatch" onclick="startMatch()">&#9654; 开始匹配</button>
+</div>
+<div id="matchStatus" style="text-align:center;margin-top:16px;display:none">
+<span class="spinner"></span>
+<span style="color:var(--gray-600);margin-left:8px" id="matchStatusMsg">正在匹配...</span>
+</div>
+<div id="matchError" style="display:none"></div>
+</div>
+<div class="footer-nav"><button class="btn btn-secondary" onclick="goToStep(4)">&#8592; 上一步</button><button class="btn btn-success" id="btnStep5Next" style="display:none" onclick="goToStep(6)">查看结果 &#8594;</button></div>
+</div>
+
+<!-- 第6步 -->
+<div class="step-content" data-step="6">
+<div class="card">
+<h2>第6步：匹配完成 - 下载结果</h2>
+<div class="summary-grid" id="summaryGrid"></div>
+<div id="summaryWarning"></div>
+<h3 style="margin-top:20px;font-size:15px">结果预览（前20行）</h3>
+<div class="preview-table-wrapper"><table class="preview-table" id="resultTable"><thead></thead><tbody></tbody></table></div>
+<p style="font-size:12px;color:var(--gray-500);margin-top:6px" id="previewCount"></p>
+<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+<button class="btn btn-primary btn-lg" onclick="downloadResultExcel()">&#128229; 下载匹配结果 Excel</button>
+<button class="btn btn-outline btn-lg" id="btnDownloadLog" onclick="downloadLogExcel()">&#128221; 下载匹配日志 Excel</button>
+</div>
+</div>
+<div class="footer-nav"><button class="btn btn-secondary" onclick="goToStep(5)">&#8592; 上一步</button><button class="btn btn-primary" onclick="resetAll()">&#8634; 开始新的匹配</button></div>
+</div>
+
+</div>
+
+<!-- 历史弹窗 -->
+<div class="history-modal" id="historyModal">
+<div class="history-panel">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<h2 style="font-size:16px">匹配历史记录</h2>
+<button class="btn btn-sm btn-secondary" onclick="document.getElementById('historyModal').classList.remove('show')">&#10005; 关闭</button>
+</div>
+<div id="historyContent"></div>
+</div>
+</div>
+
+<div class="footer">面板数据变量匹配工具 · <span id="versionTag">v3.0 纯网页版</span></div>
+
+<script>
+// ============================================================
+//  面板数据变量匹配工具 v3.0 - 纯网页版
+//  使用 SheetJS (xlsx.js) 在浏览器端完成所有 Excel 处理
+//  无需服务器，文件不会离开您的电脑
+// ============================================================
+
+// ========== 全局状态 ==========
+const STATE = {
+currentStep: 1,
+baseFile: null,
+indexCols: [],
+sourceFiles: [],
+keywords: [],
+keywordsFromFile: [],
+matchResult: null,
+};
+
+// ========== 拖拽初始化 ==========
+function initDragDrop(zoneId, inputId, handler) {
+const zone = document.getElementById(zoneId);
+const input = document.getElementById(inputId);
+if(!zone||!input) return;
+['dragenter','dragover','dragleave','drop'].forEach(e=>{zone.addEventListener(e,ev=>{ev.preventDefault();ev.stopPropagation()})});
+['dragenter','dragover'].forEach(e=>{zone.addEventListener(e,()=>zone.classList.add('drag-over'))});
+['dragleave','drop'].forEach(e=>{zone.addEventListener(e,()=>zone.classList.remove('drag-over'))});
+zone.addEventListener('drop',e=>{const fs=e.dataTransfer.files;if(fs.length>0){input.files=fs;handler(input)}});
+}
+initDragDrop('baseUploadZone','baseFileInput',handleBaseFile);
+initDragDrop('sourcesUploadZone','sourcesFileInput',handleSourceFiles);
+
+// ========== 工具函数 ==========
+function escapeHtml(s) {
+if(!s) return '';
+const d=document.createElement('div');
+d.textContent=String(s);
+return d.innerHTML;
+}
+
+function showFloatingError(msg) {
+const el=document.createElement('div');
+el.className='floating-error';
+el.textContent=msg;
+document.body.appendChild(el);
+setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300)},3000);
+}
+
+function selectOption(el, groupId) {
+document.querySelectorAll('#'+groupId+' .option-tag').forEach(t=>t.classList.remove('selected'));
+el.classList.add('selected');
+if(groupId==='matchModeGroup'){
+const h=document.getElementById('matchModeHint');
+if(el.dataset.value==='regex') h.textContent='"正则匹配"：使用正则表达式匹配列名（如 \\\\d+ 匹配数字）。高级功能，请确保了解正则语法。';
+else h.textContent='"包含匹配"：列名包含关键词即视为匹配（推荐）。如关键词"subsidy"可匹配"subsidy_amount"。';
+}
+}
+
+// ========== 步骤导航 ==========
+function goToStep(n) {
+STATE.currentStep=n;
+document.querySelectorAll('.step-item').forEach(el=>{
+const s=parseInt(el.dataset.step);
+el.classList.remove('active','done');
+if(s===n) el.classList.add('active');
+else if(s<n) el.classList.add('done');
+});
+document.querySelectorAll('.step-content').forEach(el=>el.classList.toggle('active',parseInt(el.dataset.step)===n));
+if(n===2) refreshIndexCols();
+if(n===5) updateMatchConfigSummary();
+if(n===6) renderResultStep();
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ============================================================
+//  核心：SheetJS Excel 读写
+// ============================================================
+
+function readExcelFile(file) {
+return new Promise((resolve, reject) => {
+const ext=file.name.split('.').pop().toLowerCase();
+if(!['xlsx','xls'].includes(ext)) return reject('不支持的文件格式：.'+ext+'，仅支持 .xlsx 和 .xls');
+const reader=new FileReader();
+reader.onload=e=>{
+try{
+const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+const sheetNames=wb.SheetNames;
+const dataBySheet={};
+sheetNames.forEach(name=>{
+const ws=wb.Sheets[name];
+const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+dataBySheet[name]={rows:rows,columns:rows.length>0?Object.keys(rows[0]):[]};
+});
+resolve({name:file.name,sheets:sheetNames,dataBySheet:dataBySheet});
+}catch(err){
+reject('文件读取失败：'+err.message);
+}
+};
+reader.onerror=()=>reject('文件读取失败');
+reader.readAsArrayBuffer(file);
+});
+}
+
+function sheetToWorkbook(rows) {
+const ws=XLSX.utils.json_to_sheet(rows);
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+return wb;
+}
+
+function downloadWorkbook(wb, filename) {
+const buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;a.download=filename;
+document.body.appendChild(a);a.click();
+document.body.removeChild(a);
+setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+// ============================================================
+//  核心：数据匹配与合并逻辑
+// ============================================================
+
+function normalizeFirmId(rows, colName, width) {
+if(!colName||!rows.length||!(colName in rows[0])) return rows;
+return rows.map(r=>({...r,[colName]:String(r[colName]||'').padStart(width,'0')}));
+}
+
+function parseKeywords(text) {
+if(!text||!text.trim()) return [];
+return text.trim().split(/[\n,，]+/).map(s=>s.trim()).filter(Boolean);
+}
+
+function validateRegexPatterns(patterns) {
+const invalid=[];
+patterns.forEach(p=>{try{new RegExp(p)}catch(e){invalid.push({pattern:p,error:e.message})}});
+return invalid;
+}
+
+function isColMatched(colName, keywords, mode, caseSensitive) {
+if(mode==='contains'){
+for(const kw of keywords){
+if(caseSensitive){ if(colName.includes(kw)) return true; }
+else{ if(colName.toLowerCase().includes(kw.toLowerCase())) return true; }
+}
+return false;
+}else{ // regex
+const flags=caseSensitive?'':'i';
+for(const kw of keywords){
+try{if(new RegExp(kw,flags).test(colName)) return true}catch(e){continue}
+}
+return false;
+}
+}
+
+function getMatchedCols(columns, keywords, mode, caseSensitive, excludeCols) {
+const exclude=new Set(excludeCols||[]);
+return columns.filter(c=>!exclude.has(c)&&isColMapped(c,keywords,mode,caseSensitive));
+}
+// 别名（避免命名冲突）
+const isColMapped=isColMatched;
+
+/**
+ * 模拟 pandas left merge
+ * @param {Array<Object>} baseRows 基准数据行
+ * @param {Array<Object>} mergeRows 待合并数据行
+ * @param {Array<string>} indexCols 索引列
+ * @returns {Array<Object>} 合并后的行
+ */
+function mergeLeft(baseRows, mergeRows, indexCols) {
+// 构建查找表：key = indexCols 值的拼接
+const lookup=new Map();
+const mergeCols=new Set();
+mergeRows.forEach(row=>{
+mergeCols.addAll(Object.keys(row)); // 收集所有列名
+const key=indexCols.map(c=>String(row[c]??'')).join('\x00');
+// 如果同一个 key 有多行，保留第一行
+if(!lookup.has(key)) lookup.set(key,row);
+});
+
+// 获取 merge 中非索引列的列名
+const newCols=[];
+mergeCols.forEach(c=>{if(!indexCols.includes(c)) newCols.push(c)});
+
+// 为每个 base row 拼接匹配的 merge row
+return baseRows.map(baseRow=>{
+const key=indexCols.map(c=>String(baseRow[c]??'')).join('\x00');
+const matchRow=lookup.get(key);
+const result={...baseRow};
+if(matchRow){
+newCols.forEach(c=>{result[c]=matchRow[c]!==undefined?matchRow[c]:''});
+}else{
+newCols.forEach(c=>{result[c]=''});
+}
+return result;
+});
+}
+
+// 辅助：Set.addAll polyfill
+Set.prototype.addAll=function(items){items.forEach(i=>this.add(i));return this};
+
+/**
+ * 处理单个源文件，找出匹配的列和数据
+ */
+function processSourceFile(srcFile, allKeywords, indexCols, config) {
+const results=[];
+const sheetsToScan=config.scanAllSheets?srcFile.sheets:[srcFile.sheets[0]];
+
+sheetsToScan.forEach(sheetName=>{
+const sheetData=srcFile.dataBySheet[sheetName];
+if(!sheetData||!sheetData.rows.length){
+results.push({sheet:sheetName,matchedCols:[],status:'skipped',reason:'Sheet为空'});
+return;
+}
+let rows=sheetData.rows;
+const columns=sheetData.columns;
+
+// firm_id 补齐
+if(config.firmIdCol&&columns.includes(config.firmIdCol)){
+rows=normalizeFirmId(rows,config.firmIdCol,config.firmIdWidth);
+}
+
+// 检查索引列
+const absentKeys=indexCols.filter(c=>!columns.includes(c));
+if(absentKeys.length>0){
+results.push({sheet:sheetName,matchedCols:[],status:'skipped',reason:'缺少索引列：'+absentKeys.join('、')});
+return;
+}
+
+// 找匹配列（排除索引列）
+const matchedCols=getMatchedCols(columns,allKeywords,config.matchMode,config.caseSensitive,indexCols);
+if(matchedCols.length===0){
+results.push({sheet:sheetName,matchedCols:[],status:'skipped',reason:'未找到匹配关键词的列'});
+return;
+}
+
+// 提取：索引列 + 匹配列，去重保序
+const extractCols=[];
+const seen=new Set();
+indexCols.forEach(c=>{if(!seen.has(c)){seen.add(c);extractCols.push(c)}});
+matchedCols.forEach(c=>{if(!seen.has(c)){seen.add(c);extractCols.push(c)}});
+
+// 过滤
+const subRows=rows.map(r=>{
+const obj={};
+extractCols.forEach(c=>{obj[c]=r[c]!==undefined?r[c]:''});
+return obj;
+}).filter(r=>indexCols.every(c=>r[c]!==''&&r[c]!==null&&r[c]!==undefined));
+
+results.push({
+sheet:sheetName,
+matchedCols:matchedCols,
+status:'success',
+extractCols:extractCols,
+data:subRows,
+rowCount:subRows.length,
+});
+});
+
+return results;
+}
+
+/**
+ * 主匹配流程——等效于 Python 版 execute_match()
+ */
+function executeMatch() {
+const baseData=STATE.baseFile.currentData;
+let baseRows=JSON.parse(JSON.stringify(baseData.rows)); // 深拷贝
+
+const config={
+matchMode:document.querySelector('#matchModeGroup .option-tag.selected')?.dataset.value||'contains',
+caseSensitive:document.getElementById('caseSensitive')?.checked||false,
+scanAllSheets:document.getElementById('scanAllSheets')?.checked||false,
+handleDuplicate:document.querySelector('#dupHandleGroup .option-tag.selected')?.dataset.value||'rename',
+generateLog:document.getElementById('generateLog')?.checked,
+firmIdCol:STATE.indexCols.includes('firm_id')?'firm_id':null,
+firmIdWidth:parseInt(document.getElementById('firmIdWidth')?.value||'6'),
+};
+
+const allKeywords=[...new Set([...STATE.keywords,...STATE.keywordsFromFile])];
+const indexCols=STATE.indexCols;
+const originalBaseCols=Object.keys(baseRows[0]||{}).length;
+
+// firm_id 补齐
+if(config.firmIdCol&&(config.firmIdCol in (baseRows[0]||{}))){
+baseRows=normalizeFirmId(baseRows,config.firmIdCol,config.firmIdWidth);
+}
+
+// 处理每个源文件
+const allResults=[];
+STATE.sourceFiles.forEach(sf=>{
+let fileResults;
+try{
+fileResults=processSourceFile(sf,allKeywords,indexCols,config);
+}catch(e){
+allResults.push({fileName:sf.name,results:[],error:e.message});
+return;
+}
+allResults.push({fileName:sf.name,results:fileResults,error:null});
+});
+
+// 构建日志和收集待合并数据
+const logRecords=[];
+const mergeGroups=[]; // [{fileName, data, cols}]
+
+allResults.forEach(r=>{
+if(r.error){
+logRecords.push({文件:r.fileName,Sheet:'-',匹配列:'',数据行数:0,状态:'❌ 失败：'+r.error});
+return;
+}
+r.results.forEach(sr=>{
+if(sr.status==='success'){
+logRecords.push({文件:r.fileName,Sheet:sr.sheet,匹配列:sr.matchedCols.join('、'),数据行数:sr.rowCount,状态:'✅ 成功'});
+mergeGroups.push({fileName:r.fileName,data:sr.data,cols:sr.matchedCols});
+}else{
+logRecords.push({文件:r.fileName,Sheet:sr.sheet,匹配列:'',数据行数:0,状态:'⏭️ 跳过（'+sr.reason+'）'});
+}
+});
+});
+
+const successCount=logRecords.filter(r=>r['状态'].includes('成功')).length;
+const skipCount=logRecords.filter(r=>r['状态'].includes('跳过')).length;
+const failCount=logRecords.filter(r=>r['状态'].includes('失败')).length;
+const totalExtracted=mergeGroups.reduce((s,g)=>s+g.cols.length,0);
+
+// 合并
+mergeGroups.forEach((g,i)=>{
+const overlap=g.cols.filter(c=>Object.keys(baseRows[0]||{}).includes(c)&&!indexCols.includes(c));
+let data=g.data;
+
+if(overlap.length>0){
+if(config.handleDuplicate==='skip'){
+const keepCols=Object.keys(data[0]||{}).filter(c=>!overlap.includes(c)||indexCols.includes(c));
+data=data.map(r=>{const o={};keepCols.forEach(c=>o[c]=r[c]);return o});
+}else if(config.handleDuplicate==='rename'){
+const shortName=g.fileName.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'_').substring(0,12);
+data=data.map(r=>{
+const o={...r};
+overlap.forEach(c=>{o[c+'__'+shortName]=o[c];delete o[c]});
+return o;
+});
+}
+}
+
+baseRows=mergeLeft(baseRows,data,indexCols);
+});
+
+const resultCols=Object.keys(baseRows[0]||{});
+
+return {
+mergedRows:baseRows,
+logRecords:logRecords,
+resultCols:resultCols,
+logCols:['文件','Sheet','匹配列','数据行数','状态'],
+summary:{
+baseRows:baseRows.length,
+baseColsOriginal:originalBaseCols,
+sourceFiles:STATE.sourceFiles.length,
+success:successCount,
+skipped:skipCount,
+failed:failCount,
+totalExtractedCols:totalExtracted,
+resultRows:baseRows.length,
+resultCols:resultCols.length,
+newCols:resultCols.length-originalBaseCols,
+},
+};
+}
+
+// ============================================================
+//  第1步：上传基准面板
+// ============================================================
+
+async function handleBaseFile(input) {
+const file=input.files[0];
+if(!file) return;
+if(file.size>200*1024*1024) showFloatingError('文件较大（>200MB），处理可能较慢');
+
+showLoading('读取基准面板数据...');
+try{
+const data=await readExcelFile(file);
+STATE.baseFile={name:data.name,sheets:data.sheets,dataBySheet:data.dataBySheet,currentSheet:data.sheets[0],currentData:data.dataBySheet[data.sheets[0]],columns:data.dataBySheet[data.sheets[0]].columns,rows:data.dataBySheet[data.sheets[0]].rows.length};
+
+// 显示文件信息
+document.getElementById('baseFileInfo').innerHTML='<div class="file-item"><div class="file-icon">B</div><div class="file-details"><div class="file-name">'+escapeHtml(data.name)+'</div><div class="file-meta">'+STATE.baseFile.rows+' 行 × '+STATE.baseFile.columns.length+' 列 × '+data.sheets.length+' 个Sheet</div></div></div>';
+
+// Sheet 选择器
+const sel=document.getElementById('baseSheetSelect');
+sel.innerHTML=data.sheets.map((s,i)=>'<option value="'+i+'">'+escapeHtml(s)+'</option>').join('');
+document.getElementById('baseSheetGroup').style.display='block';
+
+// 预设索引列
+const preset=['firm_id','year','Firm_ID','Year','code','company_id'];
+STATE.indexCols=STATE.baseFile.columns.filter(c=>preset.includes(c));
+
+document.getElementById('btnStep1').disabled=false;
+
+// 显示预览
+showBasePreview(data.sheets[0]);
+}catch(e){
+document.getElementById('baseFileInfo').innerHTML='<div class="alert alert-error">'+escapeHtml(e.message||e)+'</div>';
+}finally{
+hideLoading();
+}
+}
+
+function onBaseSheetChange() {
+const idx=parseInt(document.getElementById('baseSheetSelect').value);
+const name=STATE.baseFile.sheets[idx];
+STATE.baseFile.currentSheet=name;
+STATE.baseFile.currentData=STATE.baseFile.dataBySheet[name];
+STATE.baseFile.columns=STATE.baseFile.currentData.columns;
+STATE.baseFile.rows=STATE.baseFile.currentData.rows.length;
+showBasePreview(name);
+}
+
+function showBasePreview(sheetName) {
+const data=STATE.baseFile.dataBySheet[sheetName];
+const rows=data.rows.slice(0,5);
+let html='<div class="preview-table-wrapper" style="max-height:200px"><table class="preview-table"><thead><tr>';
+data.columns.forEach(c=>{html+='<th>'+escapeHtml(c)+'</th>'});
+html+='</tr></thead><tbody>';
+rows.forEach(r=>{
+html+='<tr>';
+data.columns.forEach(c=>{html+='<td title="'+escapeHtml(String(r[c]||''))+'">'+escapeHtml(String(r[c]||'').substring(0,40))+'</td>'});
+html+='</tr>';
+});
+html+='</tbody></table></div><p style="font-size:11px;color:var(--gray-500);margin-top:4px">显示前5行，共'+data.rows.length+'行</p>';
+document.getElementById('basePreview').innerHTML=html;
+}
+
+// ============================================================
+//  第2步：选择索引列
+// ============================================================
+
+function refreshIndexCols() {
+const container=document.getElementById('indexColList');
+if(!STATE.baseFile){container.innerHTML='<p style="color:var(--gray-400);font-size:13px">请先完成第1步</p>';return;}
+
+const columns=STATE.baseFile.columns;
+container.innerHTML=columns.map(col=>'<label class="checkbox-item'+(STATE.indexCols.includes(col)?' checked':'')+'"><input type="checkbox" value="'+escapeHtml(col)+'" '+(STATE.indexCols.includes(col)?' checked':'')+' onchange="onIndexColChange(this)"><span>'+escapeHtml(col)+'</span></label>').join('');
+document.getElementById('btnStep2').disabled=STATE.indexCols.length===0;
+}
+
+function onIndexColChange(cb) {
+const col=cb.value;
+if(cb.checked){if(!STATE.indexCols.includes(col)) STATE.indexCols.push(col)}
+else{STATE.indexCols=STATE.indexCols.filter(c=>c!==col)}
+cb.parentElement.classList.toggle('checked',cb.checked);
+document.getElementById('btnStep2').disabled=STATE.indexCols.length===0;
+}
+
+// ============================================================
+//  第3步：上传原始数据文件
+// ============================================================
+
+async function handleSourceFiles(input) {
+const files=Array.from(input.files);
+if(!files.length) return;
+
+showLoading('校验原始数据文件...');
+const uploaded=[],rejected=[];
+
+for(const file of files){
+const ext=file.name.split('.').pop().toLowerCase();
+if(!['xlsx','xls'].includes(ext)){rejected.push({name:file.name,error:'不支持格式 .'+ext});continue;}
+try{
+const data=await readExcelFile(file);
+uploaded.push({name:data.name,sheets:data.sheets,dataBySheet:data.dataBySheet,columns:data.dataBySheet[data.sheets[0]].columns,rows:data.dataBySheet[data.sheets[0]].rows.length});
+}catch(e){
+rejected.push({name:file.name,error:e.message||e});
+}
+}
+
+STATE.sourceFiles=uploaded;
+renderSourceFileList(uploaded,rejected);
+document.getElementById('btnStep3').disabled=uploaded.length===0;
+hideLoading();
+}
+
+function renderSourceFileList(uploaded, rejected) {
+let html='';
+uploaded.forEach((f,i)=>{
+html+='<div class="file-item"><div class="file-icon">S</div><div class="file-details"><div class="file-name">'+escapeHtml(f.name)+'</div><div class="file-meta">'+f.rows+' 行 × '+f.sheets.length+' 个Sheet</div></div><button class="btn-del" onclick="removeSourceFile('+i+')">删除</button></div>';
+});
+rejected.forEach(r=>{
+html+='<div class="file-item rejected"><div class="file-icon">!</div><div class="file-details"><div class="file-name">'+escapeHtml(r.name)+'</div><div class="file-meta" style="color:var(--error)">'+escapeHtml(r.error)+'</div></div></div>';
+});
+if(!html) html='<p class="empty-state" style="padding:16px">尚未上传原始数据文件</p>';
+document.getElementById('sourcesFileList').innerHTML=html;
+}
+
+function removeSourceFile(idx) {
+STATE.sourceFiles.splice(idx,1);
+renderSourceFileList(STATE.sourceFiles,[]);
+document.getElementById('btnStep3').disabled=STATE.sourceFiles.length===0;
+}
+
+// ============================================================
+//  第4步：关键词
+// ============================================================
+
+function addKeyword() {
+const input=document.getElementById('keywordInput');
+const raw=input.value.trim();
+if(!raw) return;
+const parts=raw.split(/[,，\s]+/).filter(Boolean);
+parts.forEach(kw=>{if(!STATE.keywords.includes(kw)) STATE.keywords.push(kw)});
+input.value='';
+renderKeywordTags();
+}
+
+function removeKeyword(idx) {
+STATE.keywords.splice(idx,1);
+renderKeywordTags();
+}
+
+function renderKeywordTags() {
+document.getElementById('keywordTags').innerHTML=STATE.keywords.map((kw,i)=>
+'<span class="keyword-tag">'+escapeHtml(kw)+'<span class="tag-remove" onclick="removeKeyword('+i+')">&#x2715;</span></span>'
+).join('');
+}
+
+async function handleKeywordFile(input) {
+const file=input.files[0];
+if(!file) return;
+const ext=file.name.split('.').pop().toLowerCase();
+if(!['xlsx','xls'].includes(ext)){
+document.getElementById('keywordFileStatus').innerHTML='<span style="color:var(--error)">仅支持 .xlsx/.xls</span>';
+return;
+}
+try{
+const data=await readExcelFile(file);
+const firstSheet=data.sheets[0];
+const rows=data.dataBySheet[firstSheet].rows;
+if(!rows.length){throw new Error('文件为空');}
+const firstCol=Object.keys(rows[0])[0];
+const keywords=rows.map(r=>String(r[firstCol]||'').trim()).filter(Boolean);
+if(!keywords.length){throw new Error('第一列无有效关键词');}
+STATE.keywordsFromFile=keywords;
+document.getElementById('keywordFileStatus').innerHTML='<span style="color:var(--success)">已读取 '+keywords.length+' 个关键词：'+keywords.slice(0,8).join('、')+(keywords.length>8?'...':'')+'</span>';
+}catch(e){
+document.getElementById('keywordFileStatus').innerHTML='<span style="color:var(--error)">'+escapeHtml(e.message||e)+'</span>';
+}
+}
+
+// ============================================================
+//  第5步：匹配执行
+// ============================================================
+
+function toggleFirmIdPad() {
+document.getElementById('firmIdWidth').disabled=!document.getElementById('enableFirmIdPad').checked;
+}
+
+function updateMatchConfigSummary() {
+const allKw=[...STATE.keywords,...STATE.keywordsFromFile];
+document.getElementById('matchConfigSummary').innerHTML=
+'<table style="width:100%;font-size:12px">'+
+'<tr><td style="padding:3px 4px;color:var(--gray-500)">基准文件</td><td style="padding:3px 4px">'+(STATE.baseFile?escapeHtml(STATE.baseFile.name):'未上传')+'</td></tr>'+
+'<tr><td style="padding:3px 4px;color:var(--gray-500)">索引列</td><td style="padding:3px 4px"><strong>'+STATE.indexCols.join('、')+'</strong></td></tr>'+
+'<tr><td style="padding:3px 4px;color:var(--gray-500)">原始数据文件</td><td style="padding:3px 4px">'+STATE.sourceFiles.length+' 个</td></tr>'+
+'<tr><td style="padding:3px 4px;color:var(--gray-500)">关键词</td><td style="padding:3px 4px">'+(allKw.length?allKw.join('、'):'未配置')+'</td></tr>'+
+'</table>';
+}
+
+async function startMatch() {
+const allKeywords=[...STATE.keywords,...STATE.keywordsFromFile];
+if(!allKeywords.length){showFloatingError('请至少输入一个关键词');return;}
+
+// 校验正则
+const mode=document.querySelector('#matchModeGroup .option-tag.selected')?.dataset.value||'contains';
+if(mode==='regex'){
+const invalid=validateRegexPatterns(allKeywords);
+if(invalid.length){showFloatingError('正则语法错误：'+invalid[0].pattern+' -> '+invalid[0].error);return;}
+}
+
+document.getElementById('btnMatch').style.display='none';
+document.getElementById('matchStatus').style.display='block';
+document.getElementById('matchStatusMsg').textContent='正在匹配...';
+document.getElementById('matchError').style.display='none';
+
+// setTimeout 让 UI 先更新
+setTimeout(()=>{
+try{
+const result=executeMatch();
+STATE.matchResult=result;
+
+document.getElementById('matchStatus').style.display='none';
+document.getElementById('btnStep5Next').style.display='';
+
+// 保存历史
+saveHistory(result);
+
+}catch(e){
+document.getElementById('matchStatus').style.display='none';
+document.getElementById('matchError').style.display='block';
+document.getElementById('matchError').innerHTML='<div class="alert alert-error">匹配出错：'+escapeHtml(e.message||e)+'</div>';
+document.getElementById('btnMatch').style.display='';
+}
+},100);
+}
+
+// ============================================================
+//  第6步：结果展示与下载
+// ============================================================
+
+function renderResultStep() {
+if(!STATE.matchResult) return;
+const r=STATE.matchResult;
+const s=r.summary;
+
+let gridHtml='';
+gridHtml+='<div class="summary-card ok"><div class="num">'+(s.success||0)+'</div><div class="label">成功匹配</div></div>';
+gridHtml+='<div class="summary-card warn"><div class="num">'+(s.skipped||0)+'</div><div class="label">跳过</div></div>';
+gridHtml+='<div class="summary-card err"><div class="num">'+(s.failed||0)+'</div><div class="label">失败</div></div>';
+gridHtml+='<div class="summary-card"><div class="num">'+(s.totalExtractedCols||0)+'</div><div class="label">提取变量列</div></div>';
+gridHtml+='<div class="summary-card"><div class="num">'+(s.resultRows||0)+'</div><div class="label">结果行数</div></div>';
+gridHtml+='<div class="summary-card"><div class="num">'+(s.resultCols||0)+' <span style="font-size:12px;color:var(--success)">(+'+(s.newCols||0)+')</span></div><div class="label">结果列数（新增）</div></div>';
+document.getElementById('summaryGrid').innerHTML=gridHtml;
+
+const warnDiv=document.getElementById('summaryWarning');
+if(!r.mergeGroups?.length&&!s.success) warnDiv.innerHTML='<div class="alert alert-warn" style="margin-bottom:8px">未从任何文件中提取到匹配数据，结果仅包含基准面板原始数据。</div>';
+else warnDiv.innerHTML='';
+
+// 预览表格
+const preview=r.mergedRows.slice(0,20);
+const cols=r.resultCols;
+const thead=document.getElementById('resultTable').querySelector('thead');
+const tbody=document.getElementById('resultTable').querySelector('tbody');
+thead.innerHTML='<tr>'+cols.map(c=>'<th>'+escapeHtml(c)+'</th>').join('')+'</tr>';
+tbody.innerHTML=preview.map(row=>'<tr>'+cols.map(c=>'<td title="'+escapeHtml(String(row[c]||''))+'">'+escapeHtml(String(row[c]||'').substring(0,50))+'</td>').join('')+'</tr>').join('');
+document.getElementById('previewCount').textContent='显示前'+Math.min(20,preview.length)+'行，共'+s.resultRows+'行';
+
+document.getElementById('btnDownloadLog').style.display=document.getElementById('generateLog').checked?'':'none';
+}
+
+function downloadResultExcel() {
+if(!STATE.matchResult) return;
+const wb=sheetToWorkbook(STATE.matchResult.mergedRows);
+downloadWorkbook(wb,'变量匹配结果.xlsx');
+}
+
+function downloadLogExcel() {
+if(!STATE.matchResult||!STATE.matchResult.logRecords.length) return;
+const wb=sheetToWorkbook(STATE.matchResult.logRecords);
+downloadWorkbook(wb,'变量匹配日志.xlsx');
+}
+
+// ============================================================
+//  历史记录（localStorage）
+// ============================================================
+
+function saveHistory(result) {
+try{
+const entry={
+id:Date.now().toString(36),
+time:new Date().toLocaleString('zh-CN'),
+baseName:STATE.baseFile?STATE.baseFile.name:'',
+indexCols:STATE.indexCols,
+keywords:[...STATE.keywords,...STATE.keywordsFromFile],
+sourceCount:STATE.sourceFiles.length,
+summary:result.summary,
+mergedRows:result.mergedRows,
+logRecords:result.logRecords,
+resultCols:result.resultCols,
+};
+const history=JSON.parse(localStorage.getItem('panel_matcher_history')||'[]');
+history.unshift(entry);
+if(history.length>30) history.length=30;
+localStorage.setItem('panel_matcher_history',JSON.stringify(history));
+}catch(e){}
+}
+
+function showHistory() {
+document.getElementById('historyModal').classList.add('show');
+const history=JSON.parse(localStorage.getItem('panel_matcher_history')||'[]');
+if(!history.length){
+document.getElementById('historyContent').innerHTML='<p class="empty-state">暂无匹配历史记录</p>';
+return;
+}
+let html='<table class="history-table"><thead><tr><th>时间</th><th>基准文件</th><th>关键词</th><th>结果</th><th>操作</th></tr></thead><tbody>';
+history.forEach(h=>{
+const s=h.summary||{};
+html+='<tr><td>'+escapeHtml(h.time||'')+'</td><td>'+escapeHtml((h.baseName||'').substring(0,25))+'</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeHtml((h.keywords||[]).join('、'))+'">'+escapeHtml((h.keywords||[]).join('、').substring(0,30))+'</td><td>成功'+(s.success||0)+' / 跳过'+(s.skipped||0)+' / '+(s.resultRows||0)+'行</td><td><button class="btn btn-sm btn-outline" onclick="downloadHistoryResult(\''+h.id+'\')">下载结果</button></td></tr>';
+});
+html+='</tbody></table>';
+document.getElementById('historyContent').innerHTML=html;
+}
+
+function downloadHistoryResult(id) {
+const history=JSON.parse(localStorage.getItem('panel_matcher_history')||'[]');
+const entry=history.find(h=>h.id===id);
+if(!entry||!entry.mergedRows) return;
+const wb=sheetToWorkbook(entry.mergedRows);
+downloadWorkbook(wb,'变量匹配结果_'+entry.time.replace(/[/:]/g,'-')+'.xlsx');
+}
+
+// 点击遮罩关闭历史
+document.getElementById('historyModal').addEventListener('click',function(e){if(e.target===this) this.classList.remove('show')});
+document.addEventListener('keydown',function(e){if(e.key==='Escape') document.getElementById('historyModal').classList.remove('show')});
+
+// ============================================================
+//  重置 & 加载动画
+// ============================================================
+
+function resetAll() {
+if(!confirm('确定要重新开始吗？未下载的结果将丢失。')) return;
+STATE.baseFile=null;
+STATE.indexCols=[];
+STATE.sourceFiles=[];
+STATE.keywords=[];
+STATE.keywordsFromFile=[];
+STATE.matchResult=null;
+document.getElementById('baseFileInfo').innerHTML='';
+document.getElementById('baseSheetGroup').style.display='none';
+document.getElementById('basePreview').innerHTML='';
+document.getElementById('indexColList').innerHTML='<p style="color:var(--gray-400);font-size:13px">请先完成第1步，上传基准数据。</p>';
+document.getElementById('sourcesFileList').innerHTML='<p class="empty-state" style="padding:16px">尚未上传原始数据文件</p>';
+document.getElementById('keywordTags').innerHTML='';
+document.getElementById('keywordFileStatus').innerHTML='';
+document.getElementById('matchConfigSummary').innerHTML='';
+document.getElementById('matchStatus').style.display='none';
+document.getElementById('matchError').style.display='none';
+document.getElementById('matchError').innerHTML='';
+document.getElementById('btnMatch').style.display='';
+document.getElementById('btnStep5Next').style.display='none';
+document.getElementById('btnStep1').disabled=true;
+document.getElementById('btnStep2').disabled=true;
+document.getElementById('btnStep3').disabled=true;
+goToStep(1);
+}
+
+function showLoading(msg) {
+document.getElementById('loadingMsg').textContent=msg||'处理中...';
+document.getElementById('loadingOverlay').classList.add('show');
+}
+
+function hideLoading() {
+document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+// ========== 初始化 ==========
+toggleFirmIdPad();
+</script>
+</body>
+</html>
