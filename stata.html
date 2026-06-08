@@ -642,12 +642,21 @@ function activateLicense() {
         return;
     }
     if (checkTrial()) {
-        var elapsed = Date.now() - parseInt(localStorage.getItem('stata_trial_start'));
-        var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed/1000));
-        var remainingM = Math.floor(remaining / 60);
-        var remainingS = remaining % 60;
         document.getElementById('trialBanner').style.display = 'block';
-        document.getElementById('trialBannerMsg').textContent = '试用剩余：' + remainingM + '分' + remainingS + '秒 | 集赞30个获取终身免费激活码';
+        // 实时倒计时，每秒更新
+        var trialTimer = setInterval(function(){
+            var elapsed = Date.now() - parseInt(localStorage.getItem('stata_trial_start'));
+            var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed/1000));
+            if (remaining <= 0) {
+                clearInterval(trialTimer);
+                document.getElementById('trialBanner').style.display = 'none';
+                showLicenseModal();
+                return;
+            }
+            var rm = Math.floor(remaining / 60);
+            var rs = remaining % 60;
+            document.getElementById('trialBannerMsg').textContent = '试用剩余：' + rm + '分' + rs + '秒 | 集赞30个获取终身免费激活码';
+        }, 1000);
     } else {
         showLicenseModal();
     }

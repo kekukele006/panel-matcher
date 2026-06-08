@@ -446,13 +446,22 @@ function checkTrial() {
     if (checkLicense()) {
         document.getElementById('licenseModal').style.display = 'none';
     } else if (checkTrial()) {
-        var elapsed = Date.now() - parseInt(localStorage.getItem('panel_matcher_trial'));
-        var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed / 1000));
-        var rm = Math.floor(remaining / 60);
-        var rs = remaining % 60;
         var banner = document.getElementById('remoteBanner');
-        banner.textContent = '试用剩余：' + rm + '分' + rs + '秒 | 集赞30个获取终身免费激活码';
         banner.style.display = 'block';
+        // 实时倒计时，每秒更新
+        var trialTimer = setInterval(function(){
+            var elapsed = Date.now() - parseInt(localStorage.getItem('panel_matcher_trial'));
+            var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed / 1000));
+            if (remaining <= 0) {
+                clearInterval(trialTimer);
+                banner.style.display = 'none';
+                document.getElementById('licenseModal').style.display = 'flex';
+                return;
+            }
+            var rm = Math.floor(remaining / 60);
+            var rs = remaining % 60;
+            banner.textContent = '试用剩余：' + rm + '分' + rs + '秒 | 集赞30个获取终身免费激活码';
+        }, 1000);
     } else {
         document.getElementById('licenseModal').style.display = 'flex';
     }
