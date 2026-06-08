@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Stata查询">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 <style>
   :root {
     --bg: #f8fafc;
@@ -495,6 +496,33 @@
   <p class="tagline">For Beginner, <strong>By Lisa</strong></p>
 </div>
 
+<!-- ========== 激活弹窗 ========== -->
+<div id="licenseModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center">
+<div style="background:#fff;border-radius:12px;padding:32px;max-width:460px;width:95%;text-align:center">
+<h2 style="font-size:18px;margin-bottom:4px">&#128274; 试用已到期</h2>
+<p style="font-size:13px;color:#64748b;margin-bottom:12px">24小时免费试用已结束，请激活后继续使用</p>
+<div style="text-align:left;margin-bottom:12px">
+<label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px">昵称 / 邮箱</label>
+<input type="text" id="licenseUser" placeholder="输入您的昵称或邮箱" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px">
+</div>
+<div style="text-align:left;margin-bottom:12px">
+<label style="display:block;font-weight:600;font-size:13px;margin-bottom:4px">激活码</label>
+<input type="text" id="licenseKey" placeholder="输入16位激活码" maxlength="16" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;font-family:monospace;letter-spacing:2px;text-transform:uppercase" onkeydown="if(event.key==='Enter')activateLicense()">
+</div>
+<div id="licenseError" style="color:#dc2626;font-size:12px;margin-bottom:12px;display:none"></div>
+<button onclick="activateLicense()" style="width:100%;padding:10px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">激活</button>
+<div style="font-size:11px;color:#9ca3af;line-height:1.6">
+<p><span style="color:#dc2626">集赞免费：</span>转发并集满30个赞，截图发给客服获取终身激活码</p>
+<p>付费用户请联系公众号客服购买</p>
+</div>
+</div>
+</div>
+
+<!-- 试用倒计时横幅 -->
+<div id="trialBanner" style="display:none;background:#fef3c7;color:#92400e;text-align:center;padding:8px;font-size:13px;border-bottom:1px solid #fde68a">
+<span id="trialBannerMsg"></span>
+</div>
+
 <div class="search-wrap">
   <div class="search-box">
     <input type="text" id="queryInput"
@@ -535,6 +563,126 @@
 </div>
 
 <script>
+// ========== 激活码 + 24小时试用系统 ==========
+const LICENSE_SECRET = "PanelMatcher2026_ChenJie_SecretKey!@#";
+var REMOTE_CONFIG = { enabled: true, whitelist: [], blocklist: [] };
+var TRIAL_HOURS = 24;
+
+function generateKey(userId) {
+    var raw = userId.trim().toLowerCase() + LICENSE_SECRET;
+    return CryptoJS.MD5(raw).toString().substring(0, 16).toUpperCase();
+}
+
+function checkLicense() {
+    try {
+        var saved = JSON.parse(localStorage.getItem('stata_license') || 'null');
+        if (!saved || !saved.user || !saved.key) return false;
+        return saved.key === generateKey(saved.user);
+    } catch(e) { return false; }
+}
+
+function getLicensedUser() {
+    try {
+        var saved = JSON.parse(localStorage.getItem('stata_license') || 'null');
+        return saved ? saved.user : "";
+    } catch(e) { return ""; }
+}
+
+function checkTrial() {
+    var trialStart = localStorage.getItem('stata_trial_start');
+    if (!trialStart) {
+        localStorage.setItem('stata_trial_start', Date.now());
+        return true;
+    }
+    var elapsed = Date.now() - parseInt(trialStart);
+    var maxMs = TRIAL_HOURS * 3600 * 1000;
+    return elapsed < maxMs;
+}
+
+function showLicenseModal() {
+    document.getElementById('licenseModal').style.display = 'flex';
+}
+
+function hideLicenseModal() {
+    document.getElementById('licenseModal').style.display = 'none';
+}
+
+function activateLicense() {
+    var user = document.getElementById('licenseUser').value.trim();
+    var key = document.getElementById('licenseKey').value.trim().toUpperCase();
+    var errEl = document.getElementById('licenseError');
+
+    if (!user) { errEl.style.display='block'; errEl.textContent='请输入昵称或邮箱'; return; }
+    if (!key || key.length!==16) { errEl.style.display='block'; errEl.textContent='请输入正确的16位激活码'; return; }
+
+    var bl = REMOTE_CONFIG.blocklist || [];
+    if (bl.some(function(u){ return u.toLowerCase()===user.toLowerCase(); })) {
+        errEl.style.display='block'; errEl.textContent='您的账号已被限制使用，请联系客服'; return;
+    }
+
+    var wl = REMOTE_CONFIG.whitelist || [];
+    if (wl.length>0 && !wl.some(function(u){ return u.toLowerCase()===user.toLowerCase(); })) {
+        errEl.style.display='block'; errEl.textContent='您的账号暂无使用权限，请联系客服开通'; return;
+    }
+
+    var expected = generateKey(user);
+    if (key === expected) {
+        localStorage.setItem('stata_license', JSON.stringify({user:user,key:key}));
+        hideLicenseModal();
+        document.getElementById('licenseError').style.display='none';
+    } else {
+        errEl.style.display='block';
+        errEl.textContent='激活码错误，请检查昵称和激活码是否匹配';
+    }
+}
+
+// 启动时检查
+(function() {
+    fetch('config.json?t=' + Date.now())
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(config){
+        if (config) REMOTE_CONFIG = config;
+
+        // 黑名单检查
+        var bl = REMOTE_CONFIG.blocklist || [];
+        if (bl.length>0) {
+            var licensedUser = getLicensedUser();
+            if (bl.some(function(u){ return u.toLowerCase()===licensedUser.toLowerCase(); })) {
+                localStorage.removeItem('stata_license');
+            }
+        }
+
+        // 已激活 -> 直接通过
+        if (checkLicense()) {
+            var wl = REMOTE_CONFIG.whitelist || [];
+            if (wl.length>0) {
+                var user = getLicensedUser();
+                if (!wl.some(function(u){ return u.toLowerCase()===user.toLowerCase(); })) {
+                    localStorage.removeItem('stata_license');
+                }
+            }
+            if (checkLicense()) return;
+        }
+
+        // 试用期检查
+        if (checkTrial()) {
+            var elapsed = Date.now() - parseInt(localStorage.getItem('stata_trial_start'));
+            var remaining = Math.max(0, TRIAL_HOURS * 3600 - Math.floor(elapsed/1000));
+            var remainingH = Math.floor(remaining / 3600);
+            var remainingM = Math.floor((remaining % 3600) / 60);
+            if (remainingH < 24) {
+                document.getElementById('trialBanner').style.display = 'block';
+                document.getElementById('trialBannerMsg').textContent = '试用剩余：' + remainingH + '小时' + remainingM + '分钟 | 集赞30个获取终身免费激活码';
+            }
+            return;
+        }
+
+        // 试用过期，显示激活
+        showLicenseModal();
+    })
+    .catch(function(){});
+})();
+
 const COMMANDS = [
   {
     "id": "import_delimited",
