@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>管理后台</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh}
@@ -356,7 +357,8 @@ async function pushUsers(msg) {
         });
         var sha = '';
         if (r1.ok) { var d = await r1.json(); sha = d.sha; }
-        var content = btoa(unescape(encodeURIComponent(JSON.stringify({users: USERS, pricing: (await (await fetch('users.json')).json()).pricing}, null, 2) + '\n')));
+        var jsonStr = JSON.stringify({users: USERS, pricing: (await (await fetch('users.json')).json()).pricing}, null, 2);
+        var content = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(m, p) { return String.fromCharCode('0x' + p); }));
         var body = { message: msg || '更新用户数据', content: content };
         if (sha) body.sha = sha;
         var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/users.json', {
@@ -380,7 +382,8 @@ async function saveSettings() {
             headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
         });
         var sha = ''; if (r1.ok) { var d = await r1.json(); sha = d.sha; }
-        var content = btoa(unescape(encodeURIComponent(JSON.stringify(CONFIG, null, 2) + '\n')));
+        var jsonStr2 = JSON.stringify(CONFIG, null, 2);
+        var content = btoa(encodeURIComponent(jsonStr2).replace(/%([0-9A-F]{2})/g, function(m, p) { return String.fromCharCode('0x' + p); }));
         var body = { message: '更新全局设置', content: content };
         if (sha) body.sha = sha;
         var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/config.json', {
