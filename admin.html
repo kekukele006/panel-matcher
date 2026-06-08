@@ -68,7 +68,7 @@ td .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px
 <span style="font-weight:700;font-size:14px;white-space:nowrap">&#9889; 快捷激活</span>
 <input type="text" id="quickName" placeholder="用户昵称/邮箱" style="flex:1;min-width:160px;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px" onkeydown="if(event.key==='Enter')quickActivate()">
 <select id="quickTool" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
-<option value="matcher">变量匹配</option><option value="stata">Stata查询</option><option value="both">两个都有</option>
+<option value="matcher">变量匹配</option><option value="stata">Stata查询</option>
 </select>
 <button class="btn btn-primary" onclick="quickActivate()" style="white-space:nowrap">一键激活</button>
 <button class="btn btn-outline" onclick="genQuickKeyAndCopy()" style="white-space:nowrap;font-size:12px">先复制激活码</button>
@@ -104,7 +104,7 @@ td .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px
 <div class="form-group"><label>激活码</label><input type="text" id="addKey" placeholder="16位激活码" maxlength="16" style="font-family:monospace;letter-spacing:2px;text-transform:uppercase"></div>
 </div>
 <div class="form-row">
-<div class="form-group"><label>工具</label><select id="addTool"><option value="matcher">变量匹配工具</option><option value="stata">Stata查询助手</option><option value="both">两个都有</option></select></div>
+<div class="form-group"><label>工具</label><select id="addTool"><option value="matcher">变量匹配工具</option><option value="stata">Stata查询助手</option></select></div>
 <div class="form-group"><label>类型</label><select id="addType" onchange="updateAddExpiry()"><option value="like_free">集赞免费</option><option value="monthly">按月付费</option><option value="lifetime">终身买断</option></select></div>
 <div class="form-group"><label>开始日期</label><input type="date" id="addStart" onchange="updateAddExpiry()"></div>
 <div class="form-group"><label>到期日期</label><input type="date" id="addExpiry" readonly></div>
@@ -181,13 +181,11 @@ function updateSummary() {
     var matcherLifetime = USERS.filter(function(u){ return u.tool==='matcher'&&u.type==='lifetime' }).length;
     var stataFree = USERS.filter(function(u){ return u.tool==='stata'&&u.type==='like_free' }).length;
     var stataLifetime = USERS.filter(function(u){ return u.tool==='stata'&&u.type==='lifetime' }).length;
-    var bothCount = USERS.filter(function(u){ return u.tool==='both' }).length;
     var expired = USERS.filter(function(u){ return isExpired(u) }).length;
 
     document.getElementById('summaryCards').innerHTML =
         '<div class="summary-card free'+(currentTab==='like_free'?' active':'')+'" onclick="switchTab(\'like_free\')"><div class="num">'+(matcherFree+stataFree)+'</div><div class="label">集赞免费</div></div>'+
-        '<div class="summary-card monthly'+(currentTab==='monthly'?' active':'')+'" onclick="switchTab(\'monthly\')"><div class="num">'+matcherMonthly+'</div><div class="label">按月付费</div></div>'+
-        '<div class="summary-card lifetime'+(currentTab==='lifetime'?' active':'')+'" onclick="switchTab(\'lifetime\')"><div class="num">'+(matcherLifetime+stataLifetime+bothCount)+'</div><div class="label">终身用户</div></div>'+
+        '<div class="summary-card lifetime'+(currentTab==='lifetime'?' active':'')+'" onclick="switchTab(\'lifetime\')"><div class="num">'+(matcherLifetime+stataLifetime)+'</div><div class="label">终身用户</div></div>'+
         '<div class="summary-card'+(expired>0?'':'')+'" onclick="switchTab(\'expired\')"><div class="num" style="color:'+(expired>0?'#dc2626':'#6b7280')+'">'+expired+'</div><div class="label">已到期</div></div>'+
         '<div class="summary-card total'+(currentTab==='all'?' active':'')+'" onclick="switchTab(\'all\')"><div class="num">'+USERS.length+'</div><div class="label">全部用户</div></div>';
 }
@@ -231,7 +229,6 @@ function renderUserTable() {
 
         if (u.tool === 'matcher') toolBadge = '<span class="badge badge-matcher">变量匹配</span>';
         else if (u.tool === 'stata') toolBadge = '<span class="badge badge-stata">Stata查询</span>';
-        else toolBadge = '<span class="badge badge-both">两个</span>';
 
         var exp = isExpired(u);
         var statusHtml = exp ? '<span class="badge badge-expired">已到期</span>' :
@@ -301,31 +298,16 @@ async function quickActivate() {
     if (!name) { showMsg('请输入昵称', 'error'); return; }
     var tool = document.getElementById('quickTool').value;
 
-    if (tool === 'both') {
-        // 生成两个独立的密钥和用户记录
-        var keyM = CryptoJS.MD5(name.toLowerCase() + LIC_SECRET_MATCHER).toString().substring(0, 16).toUpperCase();
-        var keyS = CryptoJS.MD5(name.toLowerCase() + LIC_SECRET_STATA).toString().substring(0, 16).toUpperCase();
-        USERS = USERS.filter(function(u){ return !(u.name === name && (u.tool==='matcher'||u.tool==='stata')); });
-        USERS.push({name:name, key:keyM, tool:'matcher', type:'like_free', start:new Date().toISOString().split('T')[0], expiry:null, notes:''});
-        USERS.push({name:name, key:keyS, tool:'stata', type:'like_free', start:new Date().toISOString().split('T')[0], expiry:null, notes:''});
-        await pushUsers('激活(两个): ' + name);
-        document.getElementById('quickName').value = '';
-        var el = document.getElementById('quickResult');
-        el.style.display = 'block'; el.style.background = '#f0fdf4';
-        el.innerHTML = '&#9989; 两条已保存！<br>变量匹配激活码: <strong style="font-family:monospace;font-size:15px;letter-spacing:2px">' + keyM + '</strong><br>Stata激活码: <strong style="font-family:monospace;font-size:15px;letter-spacing:2px">' + keyS + '</strong><br>用户: ' + escHtml(name) + ' | 终身免费';
-        navigator.clipboard.writeText('变量匹配: ' + keyM + '\nStata: ' + keyS).catch(function(){});
-    } else {
-        var secret = (tool === 'stata') ? LIC_SECRET_STATA : LIC_SECRET_MATCHER;
-        var key = CryptoJS.MD5(name.toLowerCase() + secret).toString().substring(0, 16).toUpperCase();
-        USERS = USERS.filter(function(u){ return !(u.name === name && u.tool === tool); });
-        USERS.push({name:name, key:key, tool:tool, type:'like_free', start:new Date().toISOString().split('T')[0], expiry:null, notes:''});
-        await pushUsers('激活: ' + name);
-        document.getElementById('quickName').value = '';
-        var el = document.getElementById('quickResult');
-        el.style.display = 'block'; el.style.background = '#f0fdf4';
-        el.innerHTML = '&#9989; 已保存！激活码: <strong style="font-family:monospace;font-size:16px;letter-spacing:2px">' + key + '</strong> | 用户: ' + escHtml(name) + ' | 工具: ' + (tool==='stata'?'Stata':'变量匹配') + ' | 终身免费';
-        navigator.clipboard.writeText(key).catch(function(){});
-    }
+    var secret = (tool === 'stata') ? LIC_SECRET_STATA : LIC_SECRET_MATCHER;
+    var key = CryptoJS.MD5(name.toLowerCase() + secret).toString().substring(0, 16).toUpperCase();
+    USERS = USERS.filter(function(u){ return !(u.name === name && u.tool === tool); });
+    USERS.push({name:name, key:key, tool:tool, type:'like_free', start:new Date().toISOString().split('T')[0], expiry:null, notes:''});
+    await pushUsers('激活: ' + name);
+    document.getElementById('quickName').value = '';
+    var el = document.getElementById('quickResult');
+    el.style.display = 'block'; el.style.background = '#f0fdf4';
+    el.innerHTML = '&#9989; 已保存！激活码: <strong style="font-family:monospace;font-size:16px;letter-spacing:2px">' + key + '</strong> | 用户: ' + escHtml(name) + ' | 工具: ' + (tool==='stata'?'Stata':'变量匹配') + ' | 终身免费';
+    navigator.clipboard.writeText(key).catch(function(){});
     updateSummary();
     renderUserTable();
 }

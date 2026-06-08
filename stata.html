@@ -676,7 +676,7 @@ function activateLicense() {
                     if (udb && udb.users) {
                         var lu = getLicensedUser();
                         var remote = udb.users.find(function(u){
-                            return u.name.toLowerCase()===lu.toLowerCase() && (u.tool==='stata'||u.tool==='both');
+                            return u.name.toLowerCase()===lu.toLowerCase() && u.tool==='stata';
                         });
                         if (remote && remote.expiry && remote.type !== 'lifetime') {
                             if (new Date(remote.expiry) < new Date()) {
