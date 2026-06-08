@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 - 面板数据变量匹配工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh}
+.header{background:#1f2937;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px}
+.container{max-width:640px;margin:24px auto;padding:0 16px}
+.card{background:#fff;border-radius:12px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.card h2{font-size:15px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #e5e7eb}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151}
+input,textarea,select{width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:14px}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}
+textarea{min-height:80px;resize:vertical}
+.help{font-size:11px;color:#9ca3af;margin-top:-10px;margin-bottom:14px}
+.btn{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
+.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
+.btn-outline{background:#fff;color:#374151;border:1px solid #d1d5db}.btn-outline:hover{background:#f9fafb}
+.btn-sm{padding:5px 12px;font-size:12px}
+.row{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.row label{margin-bottom:0;flex-shrink:0}
+.row input[type="checkbox"]{width:auto;margin-bottom:0}
+.msg{position:fixed;top:16px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.msg-success{background:#16a34a;color:#fff}
+.msg-error{background:#dc2626;color:#fff}
+.status-bar{display:flex;align-items:center;gap:8px;font-size:13px;color:#6b7280}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot-green{background:#16a34a}
+.dot-red{background:#dc2626}
+.preview{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto;color:#374151}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>管理后台</h1>
+<div class="status-bar">
+<span class="dot" id="statusDot" style="width:8px;height:8px;border-radius:50%;background:#d1d5db"></span>
+<span id="statusText">加载中...</span>
+</div>
+</div>
+
+<div class="container">
+<div class="card">
+<h2>全局开关</h2>
+<div class="row">
+<label><input type="checkbox" id="enabled" checked onchange="previewConfig()"> 启用网站</label>
+</div>
+<p class="help">取消勾选后，所有用户将看到"服务暂停"页面</p>
+</div>
+
+<div class="card">
+<h2>通知消息</h2>
+<textarea id="message" placeholder="留空则不显示。例如：新功能上线！支持正则匹配模式。" oninput="previewConfig()"></textarea>
+<p class="help">消息不为空时，顶部会显示黄色公告横幅</p>
+</div>
+
+<div class="card">
+<h2>强制重新激活</h2>
+<div class="row">
+<label><input type="checkbox" id="force_reactivate" onchange="previewConfig()"> 踢掉所有已激活用户</label>
+</div>
+<p class="help">勾选并保存后，所有用户都需要重新输入激活码</p>
+</div>
+
+<div class="card">
+<h2>白名单（仅允许指定用户）</h2>
+<textarea id="whitelist" placeholder="每行一个用户昵称/邮箱，留空则不限制。例如：&#10;user1@qq.com&#10;user2@qq.com" oninput="previewConfig()"></textarea>
+<p class="help">白名单不为空时，只有列表中的用户能激活使用</p>
+</div>
+
+<div class="card">
+<h2>配置预览</h2>
+<div class="preview" id="configPreview"></div>
+</div>
+
+<div style="display:flex;gap:12px;margin-bottom:24px">
+<button class="btn btn-primary" style="flex:1" onclick="saveConfig()">保存配置</button>
+<button class="btn btn-outline" onclick="loadConfig()">重新加载</button>
+</div>
+
+<div class="card" style="background:#fef2f2;border:1px solid #fecaca">
+<h2 style="color:#991b1b">紧急操作</h2>
+<button class="btn btn-danger" onclick="emergencyShutdown()">立即关闭网站（一键停服）</button>
+<p style="font-size:12px;color:#991b1b;margin-top:8px">点击后所有用户将无法访问，直到你重新启用</p>
+</div>
+</div>
+
+<script>
+// GitHub Token（首次使用需输入）
+var GH_TOKEN = localStorage.getItem('admin_gh_token') || '';
+var GH_REPO = 'kekukele006/panel-matcher';
+var GH_FILE = 'config.json';
+
+function getToken() {
+    if (!GH_TOKEN) {
+        GH_TOKEN = prompt('请输入你的 GitHub Personal Access Token\n（只需输入一次，会保存在浏览器中）\n\n获取方式：github.com/settings/tokens → Generate new token → 勾选 repo → 生成后复制');
+        if (GH_TOKEN) localStorage.setItem('admin_gh_token', GH_TOKEN);
+    }
+    return GH_TOKEN;
+}
+
+// 更新状态点
+function updateStatusDot(config) {
+    var dot = document.getElementById('statusDot');
+    var txt = document.getElementById('statusText');
+    if (config.enabled) {
+        dot.style.background = '#16a34a';
+        txt.textContent = '运行中';
+    } else {
+        dot.style.background = '#dc2626';
+        txt.textContent = '已关闭';
+    }
+}
+
+function previewConfig() {
+    var config = {
+        enabled: document.getElementById('enabled').checked,
+        message: document.getElementById('message').value.trim(),
+        force_reactivate: document.getElementById('force_reactivate').checked,
+        whitelist: document.getElementById('whitelist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+    updateStatusDot(config);
+    document.getElementById('configPreview').textContent = JSON.stringify(config, null, 2);
+}
+
+async function loadConfig() {
+    try {
+        var r = await fetch('config.json?t=' + Date.now());
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var config = await r.json();
+        document.getElementById('enabled').checked = config.enabled !== false;
+        document.getElementById('message').value = config.message || '';
+        document.getElementById('force_reactivate').checked = !!config.force_reactivate;
+        document.getElementById('whitelist').value = (config.whitelist || []).join('\n');
+        previewConfig();
+        showMsg('配置已加载', 'success');
+    } catch(e) {
+        showMsg('加载失败：' + e.message, 'error');
+    }
+}
+
+async function saveConfig() {
+    var token = getToken();
+    if (!token) return;
+
+    var config = {
+        enabled: document.getElementById('enabled').checked,
+        message: document.getElementById('message').value.trim(),
+        force_reactivate: document.getElementById('force_reactivate').checked,
+        whitelist: document.getElementById('whitelist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+
+    // 获取当前文件的 sha
+    var sha = '';
+    try {
+        var r1 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (r1.ok) {
+            var data = await r1.json();
+            sha = data.sha;
+        }
+    } catch(e) {}
+
+    var content = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2) + '\n')));
+    var body = {
+        message: '更新网站配置: ' + (config.enabled ? '启用' : '关闭'),
+        content: content,
+    };
+    if (sha) body.sha = sha;
+
+    try {
+        var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
+            method: 'PUT',
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (r2.ok) {
+            updateStatusDot(config);
+            showMsg('配置已保存！1-2分钟后生效', 'success');
+        } else {
+            var err = await r2.json();
+            showMsg('保存失败：' + (err.message || '未知错误'), 'error');
+        }
+    } catch(e) {
+        showMsg('网络错误：' + e.message, 'error');
+    }
+}
+
+async function emergencyShutdown() {
+    if (!confirm('确定要立即关闭网站吗？所有用户将无法访问！')) return;
+
+    var token = getToken();
+    if (!token) return;
+
+    var config = {
+        enabled: false,
+        message: '系统维护中，请稍后再试。',
+        force_reactivate: false,
+        whitelist: [],
+    };
+
+    var sha = '';
+    try {
+        var r1 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (r1.ok) { var data = await r1.json(); sha = data.sha; }
+    } catch(e) {}
+
+    var content = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2) + '\n')));
+    var body = { message: '紧急关闭网站', content: content };
+    if (sha) body.sha = sha;
+
+    try {
+        var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
+            method: 'PUT',
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (r2.ok) {
+            document.getElementById('enabled').checked = false;
+            previewConfig();
+            showMsg('网站已关闭！', 'success');
+        } else {
+            showMsg('操作失败', 'error');
+        }
+    } catch(e) {
+        showMsg('网络错误', 'error');
+    }
+}
+
+function showMsg(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'msg msg-' + (type || 'success');
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function(){ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(function(){ el.remove() },300) }, 2500);
+}
+
+// 初始化
+loadConfig();
+</script>
+</body>
+</html>
