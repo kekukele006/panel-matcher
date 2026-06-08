@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>面板数据变量匹配工具</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 <style>
 /* ========== 全局 ========== */
 *{margin:0;padding:0;box-sizing:border-box}
@@ -149,6 +150,28 @@ textarea{min-height:80px;resize:vertical}
 <div class="header-actions">
 <button class="btn btn-outline btn-sm" onclick="showHistory()">历史记录</button>
 <button class="btn btn-outline btn-sm" onclick="resetAll()">重新开始</button>
+</div>
+</div>
+
+<!-- ========== 激活弹窗 ========== -->
+<div class="history-modal" id="licenseModal" style="display:flex">
+<div class="history-panel" style="max-width:480px;text-align:center">
+<h2 style="font-size:18px;margin-bottom:4px">&#128274; 激活工具</h2>
+<p style="font-size:13px;color:var(--gray-500);margin-bottom:12px">本工具付费使用，请先激活</p>
+<div class="form-group" style="text-align:left">
+<label>昵称 / 邮箱</label>
+<input type="text" id="licenseUser" placeholder="输入您的昵称或邮箱">
+</div>
+<div class="form-group" style="text-align:left">
+<label>激活码</label>
+<input type="text" id="licenseKey" placeholder="输入16位激活码" maxlength="16" style="text-transform:uppercase;font-family:monospace;font-size:16px;letter-spacing:2px" onkeydown="if(event.key==='Enter')activateLicense()">
+</div>
+<div id="licenseError" style="color:var(--error);font-size:12px;margin-bottom:12px;display:none"></div>
+<button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="activateLicense()">激活</button>
+<div style="font-size:11px;color:var(--gray-400);line-height:1.6">
+<p><span style="color:var(--error)">集赞免费：</span>转发并集满30个赞，截图发给客服获取激活码</p>
+<p>付费用户请联系公众号客服购买</p>
+</div>
 </div>
 </div>
 
@@ -338,6 +361,48 @@ textarea{min-height:80px;resize:vertical}
 //  使用 SheetJS (xlsx.js) 在浏览器端完成所有 Excel 处理
 //  无需服务器，文件不会离开您的电脑
 // ============================================================
+
+// ========== 激活码系统 ==========
+const LICENSE_SECRET = "PanelMatcher2026_ChenJie_SecretKey!@#";
+
+function generateKey(userId) {
+    var raw = userId.trim().toLowerCase() + LICENSE_SECRET;
+    return CryptoJS.MD5(raw).toString().substring(0, 16).toUpperCase();
+}
+
+function checkLicense() {
+    try {
+        var saved = JSON.parse(localStorage.getItem('panel_matcher_license') || 'null');
+        if (!saved || !saved.user || !saved.key) return false;
+        return saved.key === generateKey(saved.user);
+    } catch(e) { return false; }
+}
+
+function activateLicense() {
+    var user = document.getElementById('licenseUser').value.trim();
+    var key = document.getElementById('licenseKey').value.trim().toUpperCase();
+    var errEl = document.getElementById('licenseError');
+
+    if (!user) { errEl.style.display = 'block'; errEl.textContent = '请输入昵称或邮箱'; return; }
+    if (!key || key.length !== 16) { errEl.style.display = 'block'; errEl.textContent = '请输入正确的16位激活码'; return; }
+
+    var expected = generateKey(user);
+    if (key === expected) {
+        localStorage.setItem('panel_matcher_license', JSON.stringify({user: user, key: key}));
+        document.getElementById('licenseModal').style.display = 'none';
+        document.getElementById('licenseError').style.display = 'none';
+    } else {
+        errEl.style.display = 'block';
+        errEl.textContent = '激活码错误，请检查昵称和激活码是否匹配';
+    }
+}
+
+// 启动时检查许可证
+(function() {
+    if (checkLicense()) {
+        document.getElementById('licenseModal').style.display = 'none';
+    }
+})();
 
 // ========== 全局状态 ==========
 const STATE = {
