@@ -270,12 +270,15 @@ function getRemaining(u) {
 function escHtml(s) { if(!s) return ''; var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
 // ========== 快捷激活 ==========
-var LIC_SECRET = "PanelMatcher2026_ChenJie_SecretKey!@#";
+var LIC_SECRET_MATCHER = "PanelMatcher2026_ChenJie_SecretKey!@#";
+var LIC_SECRET_STATA = "StataHelper2026_ChenJie_Secret";
 
 function genQuickKey() {
     var name = document.getElementById('quickName').value.trim();
     if (!name) { showMsg('请输入昵称', 'error'); return null; }
-    var raw = name.toLowerCase() + LIC_SECRET;
+    var tool = document.getElementById('quickTool').value;
+    var secret = (tool === 'stata') ? LIC_SECRET_STATA : LIC_SECRET_MATCHER;
+    var raw = name.toLowerCase() + secret;
     return { name: name, key: CryptoJS.MD5(raw).toString().substring(0, 16).toUpperCase() };
 }
 
@@ -324,7 +327,9 @@ async function quickActivate() {
 function genKey() {
     var name = document.getElementById('addName').value.trim();
     if (!name) { showMsg('请先输入昵称', 'error'); return; }
-    var raw = name.toLowerCase() + LIC_SECRET;
+    var tool = document.getElementById('addTool').value;
+    var secret = (tool === 'stata') ? LIC_SECRET_STATA : LIC_SECRET_MATCHER;
+    var raw = name.toLowerCase() + secret;
     var key = CryptoJS.MD5(raw).toString().substring(0, 16).toUpperCase();
     document.getElementById('addKey').value = key;
     showMsg('激活码已生成');
