@@ -1,1 +1,9 @@
-{"enabled":true,"message":"","force_reactivate":false,"whitelist":[],"blocklist":[]}
+{
+  "enabled": true,
+  "message": "",
+  "force_reactivate": false,
+  "whitelist": [],
+  "blocklist": [
+    "可苦可乐"
+  ]
+}
