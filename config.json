@@ -3,7 +3,5 @@
   "message": "",
   "force_reactivate": false,
   "whitelist": [],
-  "blocklist": [
-    "可苦可乐"
-  ]
+  "blocklist": []
 }
