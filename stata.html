@@ -1,0 +1,3517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stata 命令查询助手</title>
+<meta name="description" content="用中文描述需求，即刻获得准确的 Stata 命令与可复现案例。For Beginner, By Lisa.">
+<meta name="theme-color" content="#6366f1">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stata查询">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --accent: #6366f1;
+    --accent-dark: #4f46e5;
+    --accent-light: #eef2ff;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --tag-bg: #f1f5f9;
+    --tag-text: #475569;
+    --highlight: #fef9c3;
+    --success: #10b981;
+    --warm: #f59e0b;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ---- Header ---- */
+  .header {
+    background: linear-gradient(135deg, #312e81 0%, #6366f1 40%, #818cf8 100%);
+    color: #fff;
+    padding: 40px 20px 32px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(99,102,241,0.25);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 180px;
+    height: 180px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 50%;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    left: -40px;
+    width: 120px;
+    height: 120px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header h1 .icon {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 1.6rem;
+  }
+
+  .header .subtitle {
+    margin-top: 8px;
+    font-size: 1rem;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+    font-weight: 400;
+  }
+
+  .header .tagline {
+    margin-top: 12px;
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(4px);
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 0.88rem;
+    letter-spacing: 0.8px;
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .header .tagline strong {
+    color: #fbbf24;
+    font-weight: 700;
+  }
+
+  /* ---- Search ---- */
+  .search-wrap {
+    max-width: 680px;
+    margin: -24px auto 0;
+    padding: 0 20px;
+    position: relative;
+    z-index: 3;
+  }
+
+  .search-box {
+    display: flex;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 8px 30px rgba(99,102,241,0.18);
+  }
+
+  .search-box input {
+    flex: 1;
+    border: none;
+    padding: 16px 20px;
+    font-size: 1.05rem;
+    outline: none;
+    color: var(--text);
+    background: transparent;
+  }
+
+  .search-box input::placeholder {
+    color: #94a3b8;
+  }
+
+  .search-box button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 16px 28px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .search-box button:hover { background: var(--accent-dark); }
+  .search-box button:active { transform: scale(0.97); }
+
+  /* ---- Hints ---- */
+  .hints {
+    max-width: 680px;
+    margin: 12px auto 0;
+    padding: 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hints span {
+    background: var(--card-bg);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.84rem;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    transition: all 0.15s;
+    user-select: none;
+    font-weight: 500;
+  }
+
+  .hints span:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(99,102,241,0.2);
+  }
+
+  /* ---- Results ---- */
+  .results {
+    max-width: 780px;
+    margin: 24px auto 40px;
+    padding: 0 20px;
+  }
+
+  .results-meta {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+    margin-bottom: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+
+  .card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+  }
+
+  /* ---- Card header ---- */
+  .card-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    background: #fafbff;
+  }
+
+  .card-rank {
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 700;
+    background: var(--accent-light);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .card-cmd {
+    font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent-dark);
+  }
+
+  .card-level {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+
+  .card-desc {
+    width: 100%;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .card-syntax {
+    width: 100%;
+    font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+    font-size: 0.85rem;
+    background: #f8fafc;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+    color: #334155;
+    word-break: break-all;
+  }
+
+  .matched-tags {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .matched-tags span {
+    font-size: 0.73rem;
+    background: var(--highlight);
+    color: #92400e;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+
+  /* ---- Card body ---- */
+  .card-body {
+    padding: 0 20px;
+  }
+
+  .section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 14px 0 8px;
+  }
+
+  .options-list {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+  }
+
+  .options-list code {
+    font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ---- Case ---- */
+  .case {
+    background: #fafbff;
+    border-radius: 8px;
+    margin: 10px 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .case-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 12px 14px 4px;
+    color: var(--text);
+  }
+
+  .case-title::before {
+    content: '▸ ';
+    color: var(--accent);
+  }
+
+  .case-setup {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    padding: 0 14px 6px;
+  }
+
+  .case-code {
+    margin: 0 14px 10px;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+    font-size: 0.84rem;
+    position: relative;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.72rem;
+    transition: background 0.15s;
+  }
+
+  .copy-btn:hover { background: rgba(255,255,255,0.3); }
+  .copy-btn.copied { background: var(--success); }
+
+  .case-output {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    padding: 0 14px 4px;
+  }
+
+  .case-interp {
+    font-size: 0.84rem;
+    padding: 0 14px 10px;
+    color: var(--text);
+  }
+
+  .case-output strong, .case-interp strong { color: var(--accent); }
+
+  /* ---- Card footer ---- */
+  .card-footer {
+    padding: 10px 20px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .card-footer .label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }
+
+  .card-footer a {
+    font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 2px 8px;
+    background: var(--accent-light);
+    border-radius: 4px;
+  }
+
+  .card-footer a:hover {
+    background: #d0e8f8;
+  }
+
+  /* ---- Empty state ---- */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+
+  .empty .emoji { font-size: 3.5rem; margin-bottom: 16px; display: block; }
+
+  .empty .hint-text { font-size: 0.9rem; margin-top: 8px; color: #94a3b8; }
+
+  /* ---- Stats bar ---- */
+  .stats-bar {
+    max-width: 780px;
+    margin: 20px auto 0;
+    padding: 0 20px;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .stats-bar span {
+    background: var(--card-bg);
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .stats-bar strong { color: var(--accent); }
+
+  /* ---- Footer ---- */
+  .site-footer {
+    text-align: center;
+    padding: 28px 20px;
+    font-size: 0.84rem;
+    color: #94a3b8;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  .site-footer .credit {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.35rem; }
+    .search-box input { font-size: 0.95rem; padding: 12px 14px; }
+    .card-cmd { font-size: 1rem; }
+    .options-list { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="icon">📊</span>Stata 命令查询助手</h1>
+  <p class="subtitle">用中文描述需求，即刻获得准确的 Stata 命令与可复现案例</p>
+  <p class="tagline">For Beginner, <strong>By Lisa</strong></p>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <input type="text" id="queryInput"
+           placeholder="例如：按分组计算平均值、把字符串转为数值、删除缺失值..."
+           autocomplete="off" autofocus>
+    <button onclick="doSearch()">搜 索</button>
+  </div>
+  <div class="hints" id="hints">
+    <span onclick="quickSearch('分组求均值')">分组求均值</span>
+    <span onclick="quickSearch('字符串转数值')">字符串转数值</span>
+    <span onclick="quickSearch('删除缺失值')">删除缺失值</span>
+    <span onclick="quickSearch('合并两个数据集')">合并两个数据集</span>
+    <span onclick="quickSearch('画散点图')">画散点图</span>
+    <span onclick="quickSearch('做t检验')">做t检验</span>
+    <span onclick="quickSearch('做回归')">做回归</span>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <span>📦 共 <strong id="cmdCount">89</strong> 条命令</span>
+  <span>📚 入门 <strong>26</strong></span>
+  <span>📈 初级 <strong>37</strong></span>
+  <span>🔬 中高级 <strong>26</strong></span>
+</div>
+
+<div class="results" id="results">
+  <p class="empty">
+    <span class="emoji">📖</span>
+    输入需求开始搜索
+    <span class="hint-text">例如"按产地分组计算价格平均值"、"做方差分析"、"处理内生性"</span>
+  </p>
+</div>
+
+<div class="site-footer">
+  <span class="credit">For Beginner, By Lisa</span> &nbsp;|&nbsp;
+  <span>涵盖 89 条经济学实证研究常用命令</span> &nbsp;|&nbsp;
+  在 Stata 中输入 <code>help 命令名</code> 查看官方文档
+</div>
+
+<script>
+const COMMANDS = [
+  {
+    "id": "import_delimited",
+    "keywords": [
+      "导入",
+      "csv",
+      "txt",
+      "文本文件",
+      "读取数据",
+      "逗号分隔",
+      "制表符"
+    ],
+    "command": "import delimited",
+    "description": "导入逗号分隔（.csv）或制表符分隔（.txt/.tsv）的文本文件",
+    "syntax_detail": "import delimited [文件名], [选项]",
+    "prerequisites": "文件路径中不要有中文或空格",
+    "common_options": {
+      "delimiter(\",\")": "指定分隔符，逗号为默认",
+      "delimiter(tab)": "制表符分隔，用于 .tsv 文件",
+      "encoding(\"utf-8\")": "指定文件编码，中文数据常用",
+      "stringcols(_all)": "所有列先以字符串导入，防止自动转换出错",
+      "clear": "替换当前内存中的数据"
+    },
+    "cases": [
+      {
+        "title": "导入 CSV 数据文件",
+        "setup": "假定当前工作目录下有 auto.csv 文件",
+        "code": "import delimited using \"auto.csv\", clear encoding(\"utf-8\")",
+        "output_key": "共导入 74 条观测，包含 make, price, mpg 等变量",
+        "interpretation": "成功将 CSV 文件读入 Stata，第一行自动识别为变量名"
+      },
+      {
+        "title": "导入制表符分隔的 txt 文件",
+        "setup": "数据以 tab 分隔",
+        "code": "import delimited using \"data.txt\", delimiter(tab) clear",
+        "output_key": "Stata 显示导入的变量数和观测数",
+        "interpretation": "delimiter(tab) 指定制表符为分隔符"
+      }
+    ],
+    "also_see": [
+      "import_excel",
+      "insheet",
+      "infile"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "import_excel",
+    "keywords": [
+      "导入",
+      "excel",
+      "xlsx",
+      "xls",
+      "电子表格",
+      "读取excel"
+    ],
+    "command": "import excel",
+    "description": "导入 Excel 文件（.xlsx 或 .xls）",
+    "syntax_detail": "import excel [文件名], sheet(\"工作表名\") [选项]",
+    "prerequisites": "需要知道工作表名称；第一行默认为变量名",
+    "common_options": {
+      "sheet(\"Sheet1\")": "指定工作表名称或序号",
+      "firstrow": "将第一行作为变量名（默认行为）",
+      "cellrange(A1:D100)": "只导入指定范围的单元格",
+      "clear": "替换当前内存中的数据",
+      "allstring": "所有变量以字符串导入"
+    },
+    "cases": [
+      {
+        "title": "导入 Excel 中的指定工作表",
+        "setup": "auto.xlsx 包含多个工作表，需要导入 Sheet1",
+        "code": "import excel using \"auto.xlsx\", sheet(\"Sheet1\") firstrow clear",
+        "output_key": "Stata 显示导入的变量数和观测数",
+        "interpretation": "firstrow 将 Excel 第一行设为 Stata 变量名"
+      }
+    ],
+    "also_see": [
+      "import_delimited",
+      "export_excel"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "describe",
+    "keywords": [
+      "查看数据",
+      "变量列表",
+      "数据类型",
+      "标签",
+      "数据概况",
+      "有哪些变量"
+    ],
+    "command": "describe",
+    "description": "显示数据集的基本信息：变量名、存储类型、显示格式、变量标签、观测数",
+    "syntax_detail": "describe [varlist], [选项]",
+    "prerequisites": "需先载入数据",
+    "common_options": {
+      "short": "只显示变量名（最简略）",
+      "simple": "只显示变量名和类型（无标签）",
+      "detail": "显示详细信息"
+    },
+    "cases": [
+      {
+        "title": "查看 auto 数据集的变量信息",
+        "setup": "sysuse auto, clear",
+        "code": "describe",
+        "output_key": "12 个变量，74 条观测。变量包含 make(字符串)、price(int)、mpg(byte) 等",
+        "interpretation": "str18 表示长度为 18 的字符串，int/byte 是数值存储类型，节省内存"
+      }
+    ],
+    "also_see": [
+      "codebook",
+      "summarize",
+      "list",
+      "browse"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "codebook",
+    "keywords": [
+      "变量详情",
+      "取值范围",
+      "缺失值",
+      "频数",
+      "唯一值",
+      "编码"
+    ],
+    "command": "codebook",
+    "description": "显示每个变量的详细信息：类型、取值范围、唯一值个数、缺失值个数、频数分布",
+    "syntax_detail": "codebook [varlist], [选项]",
+    "prerequisites": "需先载入数据",
+    "common_options": {
+      "compact": "紧凑模式，省略频数统计",
+      "problems": "只报告有问题的变量（如全是缺失值）",
+      "tabulate(#)": "对取值不超过 # 个的变量显示频数表"
+    },
+    "cases": [
+      {
+        "title": "查看 foreign 变量的详细编码",
+        "setup": "sysuse auto, clear",
+        "code": "codebook foreign",
+        "output_key": "foreign: Car origin, 0=Domestic(52辆), 1=Foreign(22辆), 无缺失值",
+        "interpretation": "codebook 是了解变量编码方式的最佳命令，比 describe 更深入"
+      }
+    ],
+    "also_see": [
+      "describe",
+      "summarize",
+      "tabulate",
+      "inspect"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "summarize",
+    "keywords": [
+      "描述统计",
+      "均值",
+      "标准差",
+      "最小值",
+      "最大值",
+      "汇总",
+      "统计量"
+    ],
+    "command": "summarize",
+    "description": "计算数值变量的基本描述统计量：观测数、均值、标准差、最小值、最大值",
+    "syntax_detail": "summarize [varlist], [选项]",
+    "prerequisites": "变量必须为数值型",
+    "common_options": {
+      "detail": "显示详细统计量（百分位数、峰度、偏度、四个最小值/最大值）",
+      "meanonly": "只计算均值（速度最快，不显示输出）"
+    },
+    "cases": [
+      {
+        "title": "查看 price 和 mpg 的基本统计量",
+        "setup": "sysuse auto, clear",
+        "code": "summarize price mpg",
+        "output_key": "price: 均值6165, 标准差2949, 范围3291-15906; mpg: 均值21.3, 标准差5.8, 范围12-41",
+        "interpretation": "price 的标准差接近均值的一半，说明价格差异很大；mpg 分布相对均匀"
+      },
+      {
+        "title": "查看详细分布（含中位数、百分位数）",
+        "setup": "sysuse auto, clear",
+        "code": "summarize price, detail",
+        "output_key": "中位数(P50)=5006, 偏度=1.65(右偏), 峰度=4.8(厚尾)",
+        "interpretation": "price 严重右偏——少数豪车拉高了均值，中位数比均值低约 20%"
+      }
+    ],
+    "also_see": [
+      "tabstat",
+      "codebook",
+      "mean",
+      "centile"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "tabulate",
+    "keywords": [
+      "频数",
+      "交叉表",
+      "列联表",
+      "分类变量",
+      "占比",
+      "百分比"
+    ],
+    "command": "tabulate",
+    "description": "生成频数分布表（单变量）或交叉列联表（两个分类变量）",
+    "syntax_detail": "tabulate varname [varname2], [选项]",
+    "prerequisites": "变量通常为分类变量或取值较少的离散变量",
+    "common_options": {
+      "missing": "将缺失值也列为一行/列",
+      "nofreq": "不显示频数",
+      "row": "显示行百分比",
+      "column": "显示列百分比",
+      "chi2": "Pearson 卡方检验（仅交叉表）",
+      "exact": "Fisher 精确检验（小样本）"
+    },
+    "cases": [
+      {
+        "title": "统计国产车与进口车的数量分布",
+        "setup": "sysuse auto, clear",
+        "code": "tabulate foreign",
+        "output_key": "Domestic: 52 (70.27%), Foreign: 22 (29.73%)",
+        "interpretation": "样本中国产车占七成，进口车近三成"
+      },
+      {
+        "title": "修复记录与车类型的交叉表（含卡方检验）",
+        "setup": "sysuse auto, clear",
+        "code": "tabulate rep78 foreign, row chi2",
+        "output_key": "卡方统计量显著，说明修理记录与产地存在关联",
+        "interpretation": "进口车的高修理记录比例高于国产车"
+      }
+    ],
+    "also_see": [
+      "table",
+      "tab1",
+      "tab2",
+      "histogram"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "generate",
+    "keywords": [
+      "生成变量",
+      "创建变量",
+      "新变量",
+      "计算",
+      "运算"
+    ],
+    "command": "generate",
+    "description": "创建新变量，通过表达式计算赋值",
+    "syntax_detail": "generate [type] 新变量名 = 表达式 [if] [in]",
+    "prerequisites": "变量名不能与已有变量重名",
+    "common_options": {
+      "if 条件": "只对满足条件的观测赋值",
+      "in 范围": "只对指定范围的观测赋值",
+      "float/double/long/int/byte": "指定新变量的存储类型"
+    },
+    "cases": [
+      {
+        "title": "创建价格的对数变量",
+        "setup": "sysuse auto, clear",
+        "code": "generate ln_price = ln(price)\nlabel variable ln_price \"价格的对数\"",
+        "output_key": "新变量 ln_price 已创建，取值约为 8.1-9.7",
+        "interpretation": "取对数后分布更接近正态，是回归前的常规操作"
+      },
+      {
+        "title": "根据条件创建虚拟变量",
+        "setup": "sysuse auto, clear",
+        "code": "generate high_mpg = (mpg > 25)\nlabel variable high_mpg \"高油耗效率(>25mpg)\"\ntabulate high_mpg",
+        "output_key": "high_mpg=1 的有 18 辆车（油耗高于 25 mpg）",
+        "interpretation": "逻辑表达式 (mpg>25) 返回 0/1，是创建虚拟变量的简洁方法"
+      }
+    ],
+    "also_see": [
+      "replace",
+      "egen",
+      "recode",
+      "clonevar"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "replace",
+    "keywords": [
+      "替换",
+      "修改值",
+      "变更",
+      "更新",
+      "改数据"
+    ],
+    "command": "replace",
+    "description": "修改已有变量的取值",
+    "syntax_detail": "replace 变量名 = 新值 [if] [in]",
+    "prerequisites": "变量必须已存在；慎用——会直接修改原始数据",
+    "cases": [
+      {
+        "title": "将缺失值替换为均值",
+        "setup": "sysuse auto, clear",
+        "code": "summarize price\nreplace price = r(mean) if missing(price)",
+        "output_key": "先看 price 没有缺失（0 real changes made）",
+        "interpretation": "auto 数据没有缺失值，所以实际替换数为 0；但有缺失的数据集会生效"
+      },
+      {
+        "title": "重新编码分类变量",
+        "setup": "sysuse auto, clear",
+        "code": "replace rep78 = . if rep78 >= 5\nlabel define replbl 1\"差\" 2\"中下\" 3\"中\" 4\"良\"\nlabel values rep78 replbl\ntabulate rep78",
+        "output_key": "rep78>=5 的观测被设为缺失值，剩余 1-4 被重新标注",
+        "interpretation": "replace 配合 if 条件可以批量修改极端取值"
+      }
+    ],
+    "also_see": [
+      "generate",
+      "recode",
+      "mvdecode",
+      "clonevar"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "egen",
+    "keywords": [
+      "扩展生成",
+      "均值",
+      "分组",
+      "求和",
+      "计数",
+      "最值"
+    ],
+    "command": "egen",
+    "description": "扩展版 generate，提供更丰富的汇总函数：分组均值、求和、计数、标准化等",
+    "syntax_detail": "egen 新变量名 = 函数名(参数), [by(分组变量)]",
+    "prerequisites": "需熟悉各类 egen 函数",
+    "cases": [
+      {
+        "title": "计算分组均值：每种修理记录级别的平均价格",
+        "setup": "sysuse auto, clear",
+        "code": "egen mean_price_by_rep = mean(price), by(rep78)\nlist rep78 price mean_price_by_rep in 1/10",
+        "output_key": "同一 rep78 级别的观测，mean_price_by_rep 取值相同",
+        "interpretation": "by(rep78) 表示在每种修理记录级别内分别计算均值"
+      },
+      {
+        "title": "对多个变量横向求和（总得分）",
+        "setup": "sysuse auto, clear",
+        "code": "egen total_rank = rowtotal(price mpg weight length)",
+        "output_key": "total_rank 为四个变量的行求和",
+        "interpretation": "rowtotal() 自动忽略缺失值；rowmean() 则计算行均值"
+      }
+    ],
+    "also_see": [
+      "generate",
+      "collapse",
+      "bysort"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "rename",
+    "keywords": [
+      "重命名",
+      "改名",
+      "变量名",
+      "更名"
+    ],
+    "command": "rename",
+    "description": "修改变量名",
+    "syntax_detail": "rename 旧变量名 新变量名",
+    "prerequisites": "新变量名不能与已有变量名重复",
+    "cases": [
+      {
+        "title": "批量重命名——给所有变量加前缀",
+        "setup": "sysuse auto, clear",
+        "code": "rename price price_2024\nrename (*) (v_*)",
+        "output_key": "price → price_2024; 所有变量名前加 v_ 前缀",
+        "interpretation": "rename (*) (v_*) 是通配符批量重命名，星号代表全部变量"
+      }
+    ],
+    "also_see": [
+      "generate",
+      "clonevar"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "keep",
+    "keywords": [
+      "保留变量",
+      "删除变量",
+      "选择变量",
+      "筛选变量"
+    ],
+    "command": "keep",
+    "description": "保留指定变量（其余删除）或保留满足条件的观测",
+    "syntax_detail": "keep [varlist] 或 keep if [条件]",
+    "prerequisites": "操作不可逆，建议先 save 备份",
+    "cases": [
+      {
+        "title": "只保留价格和油耗两个变量",
+        "setup": "sysuse auto, clear",
+        "code": "keep price mpg\ndescribe",
+        "output_key": "数据集中只剩下 price 和 mpg 两个变量",
+        "interpretation": "keep 后接变量名保留变量；keep if 后接条件保留观测"
+      },
+      {
+        "title": "只保留价格大于 5000 的观测",
+        "setup": "sysuse auto, clear",
+        "code": "keep if price > 5000\ncount",
+        "output_key": "只剩下 33 辆车",
+        "interpretation": "与 drop if price <= 5000 等价"
+      }
+    ],
+    "also_see": [
+      "drop",
+      "preserve",
+      "restore"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "drop",
+    "keywords": [
+      "删除",
+      "去掉",
+      "丢弃",
+      "移除"
+    ],
+    "command": "drop",
+    "description": "删除指定变量或观测",
+    "syntax_detail": "drop 变量名... 或 drop if [条件]",
+    "prerequisites": "操作不可逆",
+    "cases": [
+      {
+        "title": "删除不需要的变量",
+        "setup": "sysuse auto, clear",
+        "code": "drop headroom trunk displacement gear_ratio\ndescribe",
+        "output_key": "从 12 个变量减少到 8 个",
+        "interpretation": "数据处理时通常先 drop 不参与分析的变量，让数据更清爽"
+      }
+    ],
+    "also_see": [
+      "keep",
+      "preserve",
+      "restore"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "sort",
+    "keywords": [
+      "排序",
+      "升序",
+      "降序",
+      "排列"
+    ],
+    "command": "sort",
+    "description": "将数据按指定变量升序排列",
+    "syntax_detail": "sort 变量名 [变量名...]",
+    "prerequisites": "对字符串变量也能排序（按字母顺序）",
+    "cases": [
+      {
+        "title": "按价格从低到高排列",
+        "setup": "sysuse auto, clear",
+        "code": "sort price\nlist make price in 1/5",
+        "output_key": "Chev. Monza ($3,291), Toyota Corolla ($3,748)...",
+        "interpretation": "sort 默认升序；降序用 gsort -price"
+      }
+    ],
+    "also_see": [
+      "gsort",
+      "order",
+      "bysort"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "gsort",
+    "keywords": [
+      "降序",
+      "倒序",
+      "从高到低"
+    ],
+    "command": "gsort",
+    "description": "按变量排序，+表示升序，-表示降序",
+    "syntax_detail": "gsort [+/-]变量名 ...",
+    "prerequisites": "gsort 比 sort 灵活，可混合升降序",
+    "cases": [
+      {
+        "title": "按价格从高到低排列",
+        "setup": "sysuse auto, clear",
+        "code": "gsort -price\nlist make price in 1/5",
+        "output_key": "Cad. Seville ($15,906), Cad. Eldorado ($14,500)...",
+        "interpretation": "负号表示降序，正号或不加表示升序"
+      }
+    ],
+    "also_see": [
+      "sort",
+      "order",
+      "bysort"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "bysort",
+    "keywords": [
+      "分组",
+      "分类",
+      "分组处理",
+      "组内",
+      "by"
+    ],
+    "command": "bysort",
+    "description": "按分组变量排序后在每组内执行命令——Stata 中最强大的分组操作工具",
+    "syntax_detail": "bysort 分组变量: Stata命令",
+    "prerequisites": "分组变量不能有缺失值；命令前需要确保数据已排序",
+    "cases": [
+      {
+        "title": "分组计算各产地汽车的平均价格",
+        "setup": "sysuse auto, clear",
+        "code": "bysort foreign: summarize price",
+        "output_key": "国产车均价 6072，进口车均价 6385",
+        "interpretation": "bysort 先按 foreign 分组，再在每组内执行 summarize"
+      },
+      {
+        "title": "在每组内生成序号",
+        "setup": "sysuse auto, clear",
+        "code": "bysort foreign: generate seq = _n\nlist foreign seq in 1/10",
+        "output_key": "国产车 1-52 号，进口车 1-22 号",
+        "interpretation": "_n 表示当前组内的观测序号，配合 bysort 生成组内编号"
+      }
+    ],
+    "also_see": [
+      "sort",
+      "egen",
+      "collapse",
+      "statsby"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "encode",
+    "keywords": [
+      "字符串转数值",
+      "编码",
+      "转数值",
+      "文字转数字",
+      "标签"
+    ],
+    "command": "encode",
+    "description": "将字符串变量转换为带值标签的数值变量",
+    "syntax_detail": "encode 字符串变量, generate(新数值变量)",
+    "prerequisites": "字符串变量中的每个不同取值都会被分配一个整数编码",
+    "cases": [
+      {
+        "title": "将 make（品牌名称）编码为数值",
+        "setup": "sysuse auto, clear",
+        "code": "encode make, generate(make_num)\ncodebook make_num",
+        "output_key": "make_num 取值 1-74（每种车一个编码），值标签保留了原始品牌名",
+        "interpretation": "encode 后变量是数值型但标签显示原文，适合回归等需要数值输入的场合"
+      }
+    ],
+    "also_see": [
+      "decode",
+      "destring",
+      "tostring",
+      "label"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "destring",
+    "keywords": [
+      "转数值",
+      "字符串转数字",
+      "数字字符",
+      "转换类型"
+    ],
+    "command": "destring",
+    "description": "将内容为数字的字符串变量转换为数值型变量",
+    "syntax_detail": "destring [varlist], [选项]",
+    "prerequisites": "变量内容是纯数字（或加选项处理非数字字符）",
+    "common_options": {
+      "replace": "转换后替换原变量",
+      "gen(新变量名)": "生成新变量而非替换",
+      "ignore(\",\")": "忽略指定字符（如千分位逗号）",
+      "percent": "将百分比字符串转为小数",
+      "force": "强行转换，非数字变为缺失值"
+    },
+    "cases": [
+      {
+        "title": "处理带千分位逗号的金额变量",
+        "setup": "数据集中的金额列是\"1,234,567\"这种字符串格式",
+        "code": "destring amount, replace ignore(\",\")",
+        "output_key": "amount 从 str20 变为 double，可以参与数值运算",
+        "interpretation": "ignore(\",\") 在转换前先忽略千分位逗号"
+      }
+    ],
+    "also_see": [
+      "encode",
+      "tostring",
+      "decode"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "label",
+    "keywords": [
+      "标签",
+      "变量标签",
+      "值标签",
+      "标注",
+      "注释"
+    ],
+    "command": "label variable / label define / label values",
+    "description": "设置变量的描述标签和取值的含义标签",
+    "syntax_detail": "label variable 变量名 \"描述文字\"\nlabel define 标签名 值\"含义\" 值\"含义\"...\nlabel values 变量名 标签名",
+    "prerequisites": "值标签必须先 define 再 values 附加",
+    "cases": [
+      {
+        "title": "为变量和取值添加完整标签",
+        "setup": "sysuse auto, clear",
+        "code": "label variable price \"汽车价格(美元)\"\nlabel variable mpg \"每加仑英里数\"\nlabel define origin 0\"国产\" 1\"进口\"\nlabel values foreign origin\ntabulate foreign",
+        "output_key": "foreign 现在显示为\"国产\"/\"进口\"而非\"0\"/\"1\"",
+        "interpretation": "好的标签习惯让数据和输出结果一目了然"
+      }
+    ],
+    "also_see": [
+      "encode",
+      "decode",
+      "describe"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "merge",
+    "keywords": [
+      "合并数据",
+      "横向合并",
+      "匹配",
+      "连接",
+      "m:1"
+    ],
+    "command": "merge",
+    "description": "将两个数据集按关键变量横向合并（类似 Excel 的 VLOOKUP）",
+    "syntax_detail": "merge 1:1 关键变量 using 另一数据集\nmerge m:1 关键变量 using 另一数据集\nmerge 1:m 关键变量 using 另一数据集",
+    "prerequisites": "主数据集已在内存中，using 文件需给出路径；双方需按关键变量排序",
+    "common_options": {
+      "keepusing(变量列表)": "只合并 using 数据集中的指定变量",
+      "keep(match)": "只保留匹配成功的观测",
+      "nogen": "不生成 _merge 变量"
+    },
+    "cases": [
+      {
+        "title": "主数据匹配外部补充信息（m:1 合并）",
+        "setup": "sysuse auto, clear",
+        "code": "preserve\ncollapse (mean) mpg, by(rep78)\nsave temp_rep78, replace\nrestore\nmerge m:1 rep78 using temp_rep78\nlist rep78 make mpg in 1/5",
+        "output_key": "_merge=3 表示匹配成功，每辆车现在有了对应修理级别的平均 mpg",
+        "interpretation": "m:1 是合并外部补充信息的常用方式；事后检查 _merge 变量确认匹配情况"
+      }
+    ],
+    "also_see": [
+      "append",
+      "joinby",
+      "collapse"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "append",
+    "keywords": [
+      "纵向合并",
+      "追加",
+      "拼接",
+      "堆叠",
+      "增加行"
+    ],
+    "command": "append",
+    "description": "将一个数据集纵向追加到当前数据后面（增加观测行数）",
+    "syntax_detail": "append using 另一数据集 [, 选项]",
+    "prerequisites": "两个数据集的变量名应尽量一致，不存在的变量自动填充缺失值",
+    "cases": [
+      {
+        "title": "将两组数据纵向拼接",
+        "setup": "sysuse auto, clear",
+        "code": "preserve\nkeep if foreign == 0\nsave temp_domestic, replace\nrestore\nkeep if foreign == 1\nappend using temp_domestic\ntabulate foreign",
+        "output_key": "数据恢复为完整的 74 条观测",
+        "interpretation": "append 像 SQL 的 UNION ALL；变量名一致时直接堆叠"
+      }
+    ],
+    "also_see": [
+      "merge",
+      "joinby",
+      "cross"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "collapse",
+    "keywords": [
+      "汇总",
+      "折叠",
+      "分组",
+      "聚合",
+      "均值",
+      "求和",
+      "压缩"
+    ],
+    "command": "collapse",
+    "description": "按分组变量将数据压缩为汇总统计量（组均值、求和、计数等）",
+    "syntax_detail": "collapse (统计量) 变量 ..., by(分组变量)",
+    "prerequisites": "操作不可逆，建议先 preserve",
+    "cases": [
+      {
+        "title": "计算每种车型的平均价格和销量替代指标",
+        "setup": "sysuse auto, clear",
+        "code": "collapse (mean) price mpg (count) n_cars = price, by(rep78)\nlist, clean",
+        "output_key": "数据从 74 行压缩为 5 行（按 rep78 分5组），显示各组的价格均值、油耗均值、车辆数",
+        "interpretation": "collapse 是将个体数据汇总为组别数据的核心命令"
+      }
+    ],
+    "also_see": [
+      "egen",
+      "bysort",
+      "statsby",
+      "contract"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "reshape",
+    "keywords": [
+      "转置",
+      "宽数据",
+      "长数据",
+      "面板",
+      "格式转换"
+    ],
+    "command": "reshape",
+    "description": "在宽格式（wide）和长格式（long）之间转换数据",
+    "syntax_detail": "reshape long 前缀, i(个体标识) j(时间或维度标识)\nreshape wide 前缀, i(个体标识) j(时间或维度标识)",
+    "prerequisites": "宽→长：变量名需有共同前缀+数字后缀（如 gdp2000 gdp2001 gdp2002）",
+    "cases": [
+      {
+        "title": "将省际 GDP 数据从宽格式转为长格式（面板）",
+        "setup": "目前数据: province gdp2020 gdp2021 gdp2022（每个省一行，每年一列）",
+        "code": "reshape long gdp, i(province) j(year)",
+        "output_key": "数据从 N 行变为 N×3 行，新增 year 变量；每个省-年组合占一行",
+        "interpretation": "宽转长是面板数据分析的前提；长格式是 Stata 大多数命令的标准输入格式"
+      }
+    ],
+    "also_see": [
+      "merge",
+      "append",
+      "collapse"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "preserve_restore",
+    "keywords": [
+      "保护数据",
+      "恢复",
+      "撤销",
+      "临时操作",
+      "备份"
+    ],
+    "command": "preserve / restore",
+    "description": "保存当前数据快照，之后可以恢复到该状态——最安全的数据保护机制",
+    "syntax_detail": "preserve\n  [做一些可能破坏数据的操作]\nrestore",
+    "prerequisites": "preserve 和 restore 必须成对出现",
+    "cases": [
+      {
+        "title": "安全地尝试数据筛选（不破坏原始数据）",
+        "setup": "sysuse auto, clear",
+        "code": "preserve\ndrop if price < 4000\nregress mpg price weight\nrestore\ndescribe",
+        "output_key": "restore 后数据恢复为 74 条观测，drop 操作被完全撤销",
+        "interpretation": "在不确定操作是否正确时，先用 preserve...restore 包围"
+      }
+    ],
+    "also_see": [
+      "save",
+      "use",
+      "snapshot"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "save",
+    "keywords": [
+      "保存",
+      "存盘",
+      "另存为",
+      "dta",
+      "数据集"
+    ],
+    "command": "save",
+    "description": "将当前数据保存为 Stata 格式（.dta）文件",
+    "syntax_detail": "save [文件名], [选项]",
+    "common_options": {
+      "replace": "覆盖已有同名文件",
+      "all": "保存所有变量（默认）",
+      "compress": "压缩文件大小"
+    },
+    "cases": [
+      {
+        "title": "保存清洗后的数据",
+        "setup": "sysuse auto, clear",
+        "code": "generate ln_price = ln(price)\nsave \"cleaned_auto.dta\", replace",
+        "output_key": "文件 cleaned_auto.dta 已保存到当前工作目录",
+        "interpretation": "数据处理过程中应经常 save 阶段性成果"
+      }
+    ],
+    "also_see": [
+      "use",
+      "import",
+      "export"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "use",
+    "keywords": [
+      "打开数据",
+      "载入",
+      "读取dta",
+      "打开"
+    ],
+    "command": "use",
+    "description": "载入 Stata 格式（.dta）数据集",
+    "syntax_detail": "use [文件名], [选项]",
+    "common_options": {
+      "clear": "清除内存中已有数据后载入",
+      "if 条件": "只载入满足条件的观测",
+      "using": "载入文件（可省略）"
+    },
+    "cases": [
+      {
+        "title": "载入 Stata 自带示例数据",
+        "setup": "无前置条件",
+        "code": "sysuse auto, clear\ndescribe",
+        "output_key": "1978 年汽车数据，12 个变量，74 条观测",
+        "interpretation": "sysuse 是 use 的特例，专用于载入 Stata 自带数据集"
+      }
+    ],
+    "also_see": [
+      "save",
+      "import",
+      "sysuse"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "correlate",
+    "keywords": [
+      "相关",
+      "相关系数",
+      "相关性",
+      "线性相关"
+    ],
+    "command": "correlate / pwcorr",
+    "description": "计算变量之间的 Pearson 相关系数",
+    "syntax_detail": "correlate [varlist], [选项]\npwcorr [varlist], sig star(.05)",
+    "prerequisites": "变量为数值型",
+    "cases": [
+      {
+        "title": "查看变量间的相关系数矩阵",
+        "setup": "sysuse auto, clear",
+        "code": "correlate price mpg weight length",
+        "output_key": "price-mpg: -0.47(负相关，越贵越省油), price-weight: 0.54(正相关，越重越贵)",
+        "interpretation": "相关系数衡量线性关联程度：接近 ±1 为强相关，接近 0 为弱相关"
+      }
+    ],
+    "also_see": [
+      "pwcorr",
+      "spearman",
+      "graph matrix"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "graph",
+    "keywords": [
+      "画图",
+      "绘图",
+      "散点图",
+      "直方图",
+      "折线图",
+      "箱线图",
+      "可视化"
+    ],
+    "command": "graph twoway / histogram / graph bar / graph box",
+    "description": "Stata 的绘图系统，支持散点图、直方图、柱状图、箱线图等多种类型",
+    "syntax_detail": "graph twoway (scatter y x)    // 散点图\ngraph twoway (line y x)       // 折线图\nhistogram varname              // 直方图\ngraph box varname              // 箱线图",
+    "prerequisites": "需要图形界面（GUI）或保存为图片文件",
+    "cases": [
+      {
+        "title": "画价格与油耗的散点图并添加拟合线",
+        "setup": "sysuse auto, clear",
+        "code": "graph twoway (scatter price mpg) (lfit price mpg), title(\"汽车价格与油耗\")",
+        "output_key": "散点图显示 price 与 mpg 呈负相关，拟合线向下倾斜",
+        "interpretation": "scatter 画散点，lfit 叠加线性拟合线；twoway 允许多层叠加"
+      }
+    ],
+    "also_see": [
+      "histogram",
+      "graph bar",
+      "graph box"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "regress",
+    "keywords": [
+      "回归",
+      "OLS",
+      "线性回归",
+      "最小二乘",
+      "回归分析"
+    ],
+    "command": "regress",
+    "description": "普通最小二乘法（OLS）线性回归",
+    "syntax_detail": "regress 因变量 自变量 [自变量...], [选项]",
+    "common_options": {
+      "robust": "使用异方差稳健标准误",
+      "vce(cluster 聚类变量)": "聚类稳健标准误",
+      "nocons": "不包含截距项"
+    },
+    "cases": [
+      {
+        "title": "分析汽车价格的影响因素",
+        "setup": "sysuse auto, clear",
+        "code": "regress price mpg weight foreign, robust",
+        "output_key": "mpg 系数为负（约 -131），weight 系数为正（约 3.7），foreign 系数为正（约 3056），均统计显著",
+        "interpretation": "油耗每增加1mpg，价格下降约131美元；进口车溢价约3056美元（控制其他因素后）"
+      }
+    ],
+    "also_see": [
+      "logit",
+      "probit",
+      "ivregress",
+      "areg"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "ttest",
+    "keywords": [
+      "t检验",
+      "均值比较",
+      "两组差异",
+      "独立样本",
+      "双样本"
+    ],
+    "command": "ttest",
+    "description": "t 检验：比较均值差异是否显著（单样本、独立双样本、配对）",
+    "syntax_detail": "ttest 变量, by(分组变量)      // 独立双样本\nttest 变量 == 某值              // 单样本\nttest 变量1 == 变量2            // 配对",
+    "prerequisites": "分组变量必须是二分类；连续变量近似正态",
+    "cases": [
+      {
+        "title": "比较国产车与进口车的价格是否存在显著差异",
+        "setup": "sysuse auto, clear",
+        "code": "ttest price, by(foreign)",
+        "output_key": "t=-0.31, p=0.757>0.05，不能拒绝原假设，两类车价格差异不显著",
+        "interpretation": "虽然进口车均价略高，但两组间差异没有统计显著性——波动太大"
+      }
+    ],
+    "also_see": [
+      "ranksum",
+      "signrank",
+      "regress"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "logit",
+    "keywords": [
+      "逻辑回归",
+      "二值选择",
+      "分类",
+      "概率",
+      "logit"
+    ],
+    "command": "logit",
+    "description": "Logistic 回归——因变量为 0/1 二值变量时的回归模型",
+    "syntax_detail": "logit 因变量 自变量..., [选项]",
+    "common_options": {
+      "or": "报告 odds ratio（优势比）而非系数",
+      "robust": "异方差稳健标准误",
+      "vce(cluster 聚类变量)": "聚类稳健标准误"
+    },
+    "cases": [
+      {
+        "title": "分析哪些因素影响是否进口车的概率",
+        "setup": "sysuse auto, clear",
+        "code": "logit foreign price mpg weight, or",
+        "output_key": "weight 的 OR>1（车越重越可能是国产）, mpg 的 OR>1（油耗越低越可能是进口）",
+        "interpretation": "or 选项让结果直观：OR>1 表示该变量增加时事件更可能发生"
+      }
+    ],
+    "also_see": [
+      "probit",
+      "regress",
+      "margins"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "missing",
+    "keywords": [
+      "缺失值",
+      "空值",
+      "缺失",
+      "NA",
+      ".",
+      "缺失处理"
+    ],
+    "command": "misstable / missing()",
+    "description": "检查和处理缺失值",
+    "syntax_detail": "misstable summarize [varlist]     // 汇总缺失情况\nmissing(var)                       // 判断缺失（返回 1/0）\ndrop if missing(var)               // 删除缺失观测",
+    "prerequisites": "Stata 中缺失值用 . 表示，大于任何数值",
+    "cases": [
+      {
+        "title": "查看 repair record 的缺失情况",
+        "setup": "sysuse auto, clear",
+        "code": "misstable summarize rep78\ncount if missing(rep78)\ntabulate rep78, missing",
+        "output_key": "rep78 有 5 个缺失值（.），表中显示 74 辆车中 5 辆缺失修理记录",
+        "interpretation": "Stata 中 . > 任何数字！所以 if rep78 > 3 会错误地包含缺失值，应写成 if rep78 > 3 & !missing(rep78)"
+      }
+    ],
+    "also_see": [
+      "mvdecode",
+      "mvencode",
+      "mi"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "recode",
+    "keywords": [
+      "重新编码",
+      "分组",
+      "分段",
+      "离散化",
+      "重分类"
+    ],
+    "command": "recode",
+    "description": "将连续变量分段或重新编码分类变量",
+    "syntax_detail": "recode 变量 (旧值=新值) (旧值=新值)..., generate(新变量)",
+    "cases": [
+      {
+        "title": "将连续价格分为高、中、低三档",
+        "setup": "sysuse auto, clear",
+        "code": "recode price (min/4000=1 \"低价\") (4001/8000=2 \"中价\") (8001/max=3 \"高价\"), generate(price_cat)\ntabulate price_cat",
+        "output_key": "低价 22 辆，中价 35 辆，高价 17 辆",
+        "interpretation": "生成新变量而非覆盖原变量，保留原始信息"
+      }
+    ],
+    "also_see": [
+      "generate",
+      "replace",
+      "egen cut"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "order",
+    "keywords": [
+      "变量排列",
+      "移变量",
+      "变量顺序",
+      "调整顺序"
+    ],
+    "command": "order",
+    "description": "调整数据集中变量的排列顺序",
+    "syntax_detail": "order 变量名, first / last / before(基准变量) / after(基准变量)",
+    "cases": [
+      {
+        "title": "将关键变量放到最前面",
+        "setup": "sysuse auto, clear",
+        "code": "order make price mpg, first\ndescribe",
+        "output_key": "make, price, mpg 排在前三位",
+        "interpretation": "数据分析前将关注的变量前置，配合 describe 检查更方便"
+      }
+    ],
+    "also_see": [
+      "describe",
+      "sort"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "foreach",
+    "keywords": [
+      "循环",
+      "批量",
+      "重复",
+      "对每个",
+      "遍历"
+    ],
+    "command": "foreach / forvalues",
+    "description": "循环处理：对一组变量或数值重复执行命令",
+    "syntax_detail": "foreach 变量 in 变量列表 {\n  ...\n}\nforvalues i = 1/10 {\n  ...\n}",
+    "cases": [
+      {
+        "title": "对多个变量批量生成对数变量",
+        "setup": "sysuse auto, clear",
+        "code": "foreach var of varlist price mpg weight length {\n  generate ln_`var' = ln(`var')\n}\ndescribe ln_*",
+        "output_key": "新生成 ln_price, ln_mpg, ln_weight, ln_length 四个变量",
+        "interpretation": "`var' 是局部宏引用，循环中每次被替换为当前变量名"
+      }
+    ],
+    "also_see": [
+      "forvalues",
+      "while",
+      "levelsof"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "export_excel",
+    "keywords": [
+      "导出",
+      "excel",
+      "输出",
+      "xlsx",
+      "保存表格"
+    ],
+    "command": "export excel",
+    "description": "将当前数据导出为 Excel 文件",
+    "syntax_detail": "export excel [文件名], [选项]",
+    "common_options": {
+      "firstrow(variables)": "第一行写入变量名",
+      "sheet(\"Sheet1\")": "指定工作表名",
+      "replace": "覆盖已有文件",
+      "keepcellfmt": "保留单元格格式（需提前用 putexcel 设置）"
+    },
+    "cases": [
+      {
+        "title": "将回归结果前的数据导出为 Excel",
+        "setup": "sysuse auto, clear",
+        "code": "export excel \"auto_export.xlsx\", firstrow(variables) replace",
+        "output_key": "auto_export.xlsx 已生成，包含全部 74 行 12 列",
+        "interpretation": "如果有大量数据需要交给 Excel 用户，这是最直接的方式"
+      }
+    ],
+    "also_see": [
+      "import_excel",
+      "export delimited",
+      "putexcel"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "clonevar",
+    "keywords": [
+      "复制变量",
+      "拷贝",
+      "克隆",
+      "备份变量"
+    ],
+    "command": "clonevar",
+    "description": "精确复制一个变量（包括值标签和变量标签）",
+    "syntax_detail": "clonevar 新变量名 = 旧变量名",
+    "prerequisites": "比 generate 更适合保留标签信息",
+    "cases": [
+      {
+        "title": "在修改前备份原始变量",
+        "setup": "sysuse auto, clear",
+        "code": "clonevar price_original = price\ndescribe price*",
+        "output_key": "price_original 与 price 完全相同（值、标签、类型）",
+        "interpretation": "相比 generate price_original = price，clonevar 会自动继承值标签和变量标签"
+      }
+    ],
+    "also_see": [
+      "generate",
+      "replace",
+      "rename"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "count",
+    "keywords": [
+      "计数",
+      "统计个数",
+      "满足条件",
+      "观测数"
+    ],
+    "command": "count",
+    "description": "统计满足条件的观测个数",
+    "syntax_detail": "count [if 条件]",
+    "prerequisites": "无",
+    "cases": [
+      {
+        "title": "统计价格大于 10000 的豪车数量",
+        "setup": "sysuse auto, clear",
+        "code": "count if price > 10000",
+        "output_key": "共 12 辆车价格超过 10000 美元",
+        "interpretation": "count 比 tabulate 更简洁，只显示计数结果"
+      }
+    ],
+    "also_see": [
+      "tabulate",
+      "summarize",
+      "inspect"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "duplicates",
+    "keywords": [
+      "重复值",
+      "重复观测",
+      "去重",
+      "冗余",
+      "完全相同的行"
+    ],
+    "command": "duplicates",
+    "description": "检测、标记或删除重复观测",
+    "syntax_detail": "duplicates report [varlist]\nduplicates list [varlist]\nduplicates drop [varlist], force",
+    "prerequisites": "按关键变量判断重复；不指定变量则按所有变量判断",
+    "cases": [
+      {
+        "title": "检查数据中是否存在重复的 ID",
+        "setup": "sysuse auto, clear",
+        "code": "duplicates report rep78\nduplicates list rep78",
+        "output_key": "显示每个 rep78 值有多少重复观测，并列出重复行",
+        "interpretation": "duplicates report 先看概况，再用 list 查看具体哪些观测重复，最后用 drop 删除"
+      }
+    ],
+    "also_see": [
+      "merge",
+      "append",
+      "isid",
+      "bysort"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "isid",
+    "keywords": [
+      "唯一标识",
+      "主键",
+      "ID检查",
+      "唯一性"
+    ],
+    "command": "isid",
+    "description": "检验指定变量是否能唯一标识每条观测（类似于数据库的主键约束）",
+    "syntax_detail": "isid varlist",
+    "prerequisites": "如果变量有重复，会报错并指出第一个重复值",
+    "cases": [
+      {
+        "title": "检查 make 是否是唯一标识",
+        "setup": "sysuse auto, clear",
+        "code": "isid make",
+        "output_key": "没有报错，说明 make 可以作为唯一标识符",
+        "interpretation": "面板数据中通常用 isid id year 检验 id-year 组合是否唯一"
+      }
+    ],
+    "also_see": [
+      "duplicates",
+      "merge"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "levelsof",
+    "keywords": [
+      "取值列表",
+      "有哪些值",
+      "枚举",
+      "distinct",
+      "唯一值"
+    ],
+    "command": "levelsof",
+    "description": "列出变量的所有不同取值，并存入局部宏供循环使用",
+    "syntax_detail": "levelsof varname, local(宏名)",
+    "prerequisites": "变量取值不宜过多（否则宏会很长）",
+    "cases": [
+      {
+        "title": "获取修理记录的所有取值并循环处理",
+        "setup": "sysuse auto, clear",
+        "code": "levelsof rep78, local(levels)\nforeach l of local levels {\n  display \"rep78 = `l' 有 \" _continue\n  count if rep78 == `l'\n}",
+        "output_key": "rep78=1有2辆, rep78=2有8辆, rep78=3有30辆, rep78=4有18辆, rep78=5有11辆",
+        "interpretation": "levelsof 将变量的所有不同取值存入 local，配合 foreach 实现按取值循环"
+      }
+    ],
+    "also_see": [
+      "foreach",
+      "tabulate",
+      "inspect"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "assert",
+    "keywords": [
+      "验证",
+      "断言",
+      "条件检查",
+      "数据质量",
+      "检验"
+    ],
+    "command": "assert",
+    "description": "验证某一条件是否对所有观测成立；不成立时报错",
+    "syntax_detail": "assert 表达式",
+    "prerequisites": "表达式需返回真/假",
+    "cases": [
+      {
+        "title": "确保价格变量中没有负值",
+        "setup": "sysuse auto, clear",
+        "code": "assert price > 0",
+        "output_key": "无输出即表示断言通过，数据满足条件",
+        "interpretation": "assert 是数据质量检查的第一道防线——发现异常时立刻报错而非悄悄生成错误结果"
+      }
+    ],
+    "also_see": [
+      "duplicates",
+      "count",
+      "inspect"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "expand",
+    "keywords": [
+      "扩展观测",
+      "重复行",
+      "频率权重",
+      "复制"
+    ],
+    "command": "expand",
+    "description": "将每条观测复制 n 次（n 由变量或数值指定），用于频率权重数据还原",
+    "syntax_detail": "expand = 表达式",
+    "prerequisites": "复制后数据行数增加，注意内存",
+    "cases": [
+      {
+        "title": "将汇总数据还原为个体数据",
+        "setup": "某数据集: group_A 有30人 平均分85; group_B 有20人 平均分90",
+        "code": "expand n_students\n* 每条观测复制 n_students 次，之后可做个体层面分析",
+        "output_key": "数据从 2 行变为 50 行",
+        "interpretation": "expand 常用于将分组汇总表还原为个体层面数据"
+      }
+    ],
+    "also_see": [
+      "collapse",
+      "merge",
+      "fillin"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "ipolate",
+    "keywords": [
+      "插值",
+      "线性插补",
+      "填补缺失",
+      "缺失值填补"
+    ],
+    "command": "ipolate",
+    "description": "线性插值：用时间或序列上的相邻非缺失值填补缺失值",
+    "syntax_detail": "ipolate varname timevar, generate(newvar) epolate",
+    "prerequisites": "数据需按时间变量排序；只能填补序列中间的缺失值，不能填补头尾",
+    "cases": [
+      {
+        "title": "用前后年份的数据填补缺失的 GDP",
+        "setup": "某省份 2018 年 GDP 缺失，其余年份完整，按年份排序",
+        "code": "sort province year\nby province: ipolate gdp year, generate(gdp_filled) epolate",
+        "output_key": "gdp_filled 在缺失年份被前后值的线性插值填补",
+        "interpretation": "epolate 选项允许外推首尾缺失值（线性外推）"
+      }
+    ],
+    "also_see": [
+      "missing",
+      "misstable",
+      "fillin",
+      "tsfill"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "winsor2",
+    "keywords": [
+      "缩尾",
+      "极端值",
+      "离群值",
+      "winsorize",
+      "缩尾处理"
+    ],
+    "command": "winsor2",
+    "description": "对连续变量进行缩尾处理——将极端值替换为指定分位数的值（需安装 winsor2）",
+    "syntax_detail": "winsor2 varlist, cuts(1 99) replace\n* 安装: ssc install winsor2",
+    "prerequisites": "需先用 ssc install winsor2 安装",
+    "cases": [
+      {
+        "title": "对价格变量做 1% 和 99% 分位数的缩尾",
+        "setup": "sysuse auto, clear",
+        "code": "ssc install winsor2   // 首次使用需安装\nwinsor2 price, cuts(1 99) replace",
+        "output_key": "price 最低 1% 和最高 1% 的值被替换为 P1 和 P99 的分位数值",
+        "interpretation": "缩尾比直接删除极端值更温和——保留了观测，但去除了极端影响"
+      }
+    ],
+    "also_see": [
+      "summarize",
+      "generate",
+      "histogram",
+      "qreg"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "separate",
+    "keywords": [
+      "拆分变量",
+      "按组拆",
+      "生成多个变量"
+    ],
+    "command": "separate",
+    "description": "将一个变量按分组条件拆分为多个新变量",
+    "syntax_detail": "separate varname, by(groupvar)",
+    "prerequisites": "分组变量取值不宜过多",
+    "cases": [
+      {
+        "title": "将价格按产地拆分为两个变量",
+        "setup": "sysuse auto, clear",
+        "code": "separate price, by(foreign)",
+        "output_key": "生成 price0(国产车价格) 和 price1(进口车价格) 两个变量",
+        "interpretation": "拆分后可以直接比较两个变量的分布"
+      }
+    ],
+    "also_see": [
+      "bysort",
+      "generate",
+      "tabstat"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "tabstat",
+    "keywords": [
+      "统计表",
+      "多变量统计",
+      "分组统计",
+      "均值标准差表",
+      "描述统计表"
+    ],
+    "command": "tabstat",
+    "description": "生成灵活的汇总统计表——可以同时展示多个变量的均值、标准差、中位数等，支持分组",
+    "syntax_detail": "tabstat varlist, by(groupvar) statistics(mean sd median min max n)",
+    "prerequisites": "变量为数值型",
+    "cases": [
+      {
+        "title": "分组展示价格和油耗的多种统计量",
+        "setup": "sysuse auto, clear",
+        "code": "tabstat price mpg, by(foreign) statistics(mean sd median min max n)",
+        "output_key": "国产车与进口车的价格和油耗对比展示在同一张表中，含均值、标准差、中位数等",
+        "interpretation": "tabstat 是论文中\"描述性统计表\"的标配命令，输出格式比 summarize 更适合制表"
+      }
+    ],
+    "also_see": [
+      "summarize",
+      "mean",
+      "table",
+      "estpost"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "spearman",
+    "keywords": [
+      "秩相关",
+      "spearman",
+      "排序相关",
+      "非线性相关",
+      "单调相关"
+    ],
+    "command": "spearman",
+    "description": "计算 Spearman 秩相关系数——不要求线性关系，只要求单调关系",
+    "syntax_detail": "spearman varlist, stats(rho p)",
+    "prerequisites": "变量为数值型；适合有极端值或非线性关系的情况",
+    "cases": [
+      {
+        "title": "计算价格与相关变量的秩相关系数",
+        "setup": "sysuse auto, clear",
+        "code": "spearman price mpg weight, stats(rho p)",
+        "output_key": "rho 值与 Pearson 相关系数对比；若差异大，说明存在非线性关系或极端值影响",
+        "interpretation": "当数据有极端值或怀疑非线性关系时，Spearman 比 Pearson 更稳健"
+      }
+    ],
+    "also_see": [
+      "correlate",
+      "pwcorr",
+      "graph matrix",
+      "ktau"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "mean",
+    "keywords": [
+      "均值估计",
+      "标准误",
+      "置信区间",
+      "均值检验"
+    ],
+    "command": "mean",
+    "description": "估计均值并报告标准误和置信区间（与 summarize 不同，mean 使用抽样理论给出推断统计量）",
+    "syntax_detail": "mean varlist, over(groupvar)",
+    "prerequisites": "变量为数值型",
+    "cases": [
+      {
+        "title": "估计价格均值及 95% 置信区间",
+        "setup": "sysuse auto, clear",
+        "code": "mean price\nmean price, over(foreign)",
+        "output_key": "price 均值 6165，95%CI=[5467, 6863]；分组后比较重叠情况",
+        "interpretation": "summarize 只给描述性统计量；mean 给出标准误和置信区间，适合推断"
+      }
+    ],
+    "also_see": [
+      "summarize",
+      "ci",
+      "ttest",
+      "proportion"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "ci",
+    "keywords": [
+      "置信区间",
+      "CI",
+      "区间估计",
+      "均值的置信区间"
+    ],
+    "command": "ci means / ci proportions",
+    "description": "计算均值的置信区间（ci means）或比例的置信区间（ci proportions）",
+    "syntax_detail": "ci means varlist\nci proportions varname",
+    "prerequisites": "变量为数值型",
+    "cases": [
+      {
+        "title": "计算价格的 99% 置信区间",
+        "setup": "sysuse auto, clear",
+        "code": "ci means price, level(99)\nci proportions foreign",
+        "output_key": "price 的 99%CI 比 95%CI 更宽；foreign 的比例为 0.297, 95%CI 包含 0.3",
+        "interpretation": "汇报回归结果时，通常同时汇报点估计和置信区间"
+      }
+    ],
+    "also_see": [
+      "mean",
+      "ttest",
+      "summarize"
+    ],
+    "level": "入门"
+  },
+  {
+    "id": "bootstrap",
+    "keywords": [
+      "自助法",
+      "重抽样",
+      "标准误",
+      "bootstrap"
+    ],
+    "command": "bootstrap",
+    "description": "通过自助法（重抽样）计算统计量的标准误和置信区间，不依赖分布假设",
+    "syntax_detail": "bootstrap, reps(1000): 命令",
+    "prerequisites": "重抽样次数越多越精确（论文中通常 1000-5000 次）",
+    "cases": [
+      {
+        "title": "用自助法估计回归系数的标准误",
+        "setup": "sysuse auto, clear",
+        "code": "bootstrap, reps(500) seed(12345): regress price mpg weight",
+        "output_key": "回归系数及其基于自助法的标准误、置信区间",
+        "interpretation": "当残差非正态或存在异方差时，bootstrap 标准误比 OLS 默认标准误更可靠"
+      }
+    ],
+    "also_see": [
+      "regress",
+      "jackknife",
+      "permute"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "xtset",
+    "keywords": [
+      "面板数据",
+      "设定面板",
+      "面板声明",
+      "个体变量",
+      "时间变量"
+    ],
+    "command": "xtset",
+    "description": "声明数据集的面板结构——指定个体标识变量和时间变量",
+    "syntax_detail": "xtset panelvar timevar",
+    "prerequisites": "数据必须先排序；panelvar 和 timevar 的组合必须唯一",
+    "cases": [
+      {
+        "title": "设定省际面板数据",
+        "setup": "假设数据包含 province year gdp inv labor",
+        "code": "xtset province year",
+        "output_key": "Stata 显示 panel variable: province (strongly balanced)",
+        "interpretation": "xtset 是所有 xt 系列命令（xtreg, xtlogit 等）的前置步骤"
+      }
+    ],
+    "also_see": [
+      "xtreg",
+      "xtdescribe",
+      "xtsum",
+      "tsset"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "xtreg",
+    "keywords": [
+      "面板回归",
+      "固定效应",
+      "随机效应",
+      "FE",
+      "RE",
+      "组内估计"
+    ],
+    "command": "xtreg",
+    "description": "面板数据线性回归——支持固定效应（fe）、随机效应（re）、组间估计（be）等",
+    "syntax_detail": "xtreg y x1 x2 ..., fe       // 固定效应（个体固定）\nxtreg y x1 x2 ..., re       // 随机效应",
+    "prerequisites": "必须先 xtset 声明面板结构",
+    "common_options": {
+      "fe": "固定效应模型——控制不随时间变化的个体异质性",
+      "re": "随机效应模型——假设个体效应与解释变量不相关",
+      "vce(cluster panelvar)": "聚类稳健标准误（必须用个体变量聚类）",
+      "robust": "异方差稳健标准误"
+    },
+    "cases": [
+      {
+        "title": "固定效应与随机效应的比较",
+        "setup": "假设有省际面板数据 province year gdp inv labor",
+        "code": "xtset province year\nxtreg gdp inv labor, fe\nestimates store FE\nxtreg gdp inv labor, re\nestimates store RE\nhausman FE RE",
+        "output_key": "Hausman 检验 P<0.05 选择固定效应；P>0.05 随机效应更有效",
+        "interpretation": "固定效应是经济学实证研究的基准模型——它消除了所有不随时间变化的遗漏变量"
+      }
+    ],
+    "also_see": [
+      "xtset",
+      "hausman",
+      "reghdfe",
+      "areg",
+      "xttest0"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "hausman",
+    "keywords": [
+      "豪斯曼检验",
+      "模型选择",
+      "FE vs RE",
+      "固定效应检验"
+    ],
+    "command": "hausman",
+    "description": "Hausman 设定检验——比较固定效应和随机效应估计量，判断应选择哪个",
+    "syntax_detail": "hausman FE估计结果 RE估计结果",
+    "prerequisites": "需先分别存储 FE 和 RE 的估计结果（estimates store）",
+    "cases": [
+      {
+        "title": "用 Hausman 检验判断 FE vs RE",
+        "setup": "先跑 FE 和 RE 模型",
+        "code": "xtreg price mpg weight, fe\nestimates store fe_model\nxtreg price mpg weight, re\nestimates store re_model\nhausman fe_model re_model",
+        "output_key": "如果 P<0.05，拒绝\"RE 一致\"的原假设，应使用 FE",
+        "interpretation": "Hausman 检验是面板数据实证研究的标准步骤，通常在论文脚注中报告"
+      }
+    ],
+    "also_see": [
+      "xtreg",
+      "reghdfe",
+      "xtoverid"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "xtlogit",
+    "keywords": [
+      "面板logit",
+      "面板逻辑回归",
+      "固定效应logit",
+      "随机效应logit"
+    ],
+    "command": "xtlogit",
+    "description": "面板数据 Logistic 回归——因变量为 0/1 时的面板模型",
+    "syntax_detail": "xtlogit y x1 x2 ..., fe       // 固定效应 logit（条件 logit）\nxtlogit y x1 x2 ..., re       // 随机效应 logit",
+    "prerequisites": "必须先 xtset；fe 选项只保留因变量有变化的个体",
+    "cases": [
+      {
+        "title": "面板 logit 固定效应",
+        "setup": "假设有企业面板数据 id year patent(0/1) rd size",
+        "code": "xtset id year\nxtlogit patent rd size, fe",
+        "output_key": "只使用专利状态有变化的企业；系数解释为对数优势比的变化",
+        "interpretation": "FE logit 自动删除因变量不随时间变化的观测——这点与线性 FE 不同"
+      }
+    ],
+    "also_see": [
+      "xtreg",
+      "logit",
+      "xtprobit",
+      "clogit"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "reghdfe",
+    "keywords": [
+      "高维固定效应",
+      "多维FE",
+      "reghdfe",
+      "多固定效应"
+    ],
+    "command": "reghdfe",
+    "description": "高维固定效应线性回归——可同时纳入多个固定效应维度（需安装）",
+    "syntax_detail": "reghdfe y x1 x2, absorb(fe1 fe2 fe3) vce(cluster fe1)\n* 安装: ssc install reghdfe",
+    "prerequisites": "需先用 ssc install reghdfe 安装",
+    "cases": [
+      {
+        "title": "同时控制企业固定效应和年份固定效应",
+        "setup": "假设有企业面板数据 id year y x1 x2",
+        "code": "ssc install reghdfe   // 首次使用需安装\nreghdfe y x1 x2, absorb(id year) vce(cluster id)",
+        "output_key": "同时吸收了企业 FE 和年份 FE，标准误在企业层面聚类",
+        "interpretation": "reghdfe 是现代经济学实证的标准工具——比 xtreg 灵活得多，可以多维度 FE"
+      }
+    ],
+    "also_see": [
+      "xtreg",
+      "areg",
+      "ivreghdfe",
+      "ppmlhdfe"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "ivregress",
+    "keywords": [
+      "工具变量",
+      "IV",
+      "2SLS",
+      "内生性",
+      "两阶段最小二乘"
+    ],
+    "command": "ivregress",
+    "description": "工具变量回归（两阶段最小二乘法，2SLS）——处理内生解释变量",
+    "syntax_detail": "ivregress 2sls y x1 (x2 = instrument1 instrument2), robust",
+    "prerequisites": "工具变量需满足相关性和外生性两个条件",
+    "cases": [
+      {
+        "title": "用工具变量处理价格内生性",
+        "setup": "sysuse auto, clear。假设 weight 内生，用 length 和 displacement 作工具变量",
+        "code": "ivregress 2sls price mpg (weight = length displacement), robust",
+        "output_key": "2SLS 系数与 OLS 对比，若差异大说明 OLS 存在内生性偏误",
+        "interpretation": "工具变量的两个条件：①与内生变量相关（一阶段 F>10）；②与误差项不相关（需理论论证）"
+      }
+    ],
+    "also_see": [
+      "ivreg2",
+      "hausman",
+      "weakiv",
+      "ivreghdfe"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "ivreg2",
+    "keywords": [
+      "工具变量2",
+      "弱工具变量",
+      "过度识别",
+      "Cragg-Donald",
+      "Kleibergen-Paap"
+    ],
+    "command": "ivreg2",
+    "description": "增强版工具变量回归——自动报告弱工具变量检验和过度识别检验（需安装）",
+    "syntax_detail": "ivreg2 y x1 (x2 = z1 z2), robust first\n* 安装: ssc install ivreg2",
+    "prerequisites": "需先用 ssc install ivreg2 安装",
+    "cases": [
+      {
+        "title": "完整 IV 分析流程",
+        "setup": "sysuse auto, clear",
+        "code": "ssc install ivreg2   // 首次使用需安装\nivreg2 price mpg (weight = length displacement), robust first",
+        "output_key": "一阶段 F 统计量>10 说明非弱工具变量；Sargan/Hansen J 检验 P>0.05 说明工具变量外生",
+        "interpretation": "ivreg2 是经济学实证论文中 IV 方法的标准命令——输出信息比 ivregress 更完整"
+      }
+    ],
+    "also_see": [
+      "ivregress",
+      "weakiv",
+      "hausman",
+      "xtivreg2"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "did",
+    "keywords": [
+      "双重差分",
+      "DID",
+      "政策评估",
+      "倍差法",
+      "处理组",
+      "对照组"
+    ],
+    "command": "diff",
+    "description": "双重差分法——评估政策干预的因果效应",
+    "syntax_detail": "diff outcome, treated(treat) period(post)\n* 或使用 Stata 18+ 的 didregress",
+    "prerequisites": "需要处理组/对照组 × 政策前/政策后的四组数据",
+    "cases": [
+      {
+        "title": "经典 DID：评估最低工资政策对就业的影响",
+        "setup": "数据包含 treat(1=处理州,0=对照州) post(1=政策后,0=政策前) employment",
+        "code": "ssc install diff   // 首次使用需安装\ndiff employment, treated(treat) period(post) robust",
+        "output_key": "DID 估计量即政策因果效应的估计值；需通过平行趋势检验验证",
+        "interpretation": "DID 的核心假设：没有政策时，处理组和对照组的趋势应平行"
+      }
+    ],
+    "also_see": [
+      "didregress",
+      "eventdd",
+      "csdid",
+      "bacondecomp"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "rdrobust",
+    "keywords": [
+      "断点回归",
+      "RDD",
+      "sharp RD",
+      "fuzzy RD",
+      "断点"
+    ],
+    "command": "rdrobust",
+    "description": "断点回归设计——利用断点附近的局部随机性识别因果效应（需安装）",
+    "syntax_detail": "rdrobust y running_var, c(cutoff)\n* 安装: ssc install rdrobust",
+    "prerequisites": "需指定分配变量和断点值",
+    "cases": [
+      {
+        "title": "利用分数线断点评估重点班的效果",
+        "setup": "score(入学分数) cutoff(录取线=75) outcome(毕业成绩)",
+        "code": "ssc install rdrobust   // 首次使用需安装\nrdrobust outcome score, c(75) p(1)",
+        "output_key": "局部处理效应（LATE）的估计值及稳健标准误；附带最优带宽选择",
+        "interpretation": "rdrobust 自动选择 MSE 最优带宽，并在不同带宽下做稳健性检验"
+      }
+    ],
+    "also_see": [
+      "rdplot",
+      "rddensity",
+      "rd",
+      "rdcv"
+    ],
+    "level": "高级"
+  },
+  {
+    "id": "psmatch2",
+    "keywords": [
+      "倾向得分",
+      "匹配",
+      "PSM",
+      "处理效应",
+      "ATT",
+      "倾向得分匹配"
+    ],
+    "command": "psmatch2",
+    "description": "倾向得分匹配——通过匹配处理组和对照组来估计平均处理效应（需安装）",
+    "syntax_detail": "psmatch2 treat x1 x2 ..., outcome(y) logit ate\n* 安装: ssc install psmatch2",
+    "prerequisites": "需先用 logit/probit 估计倾向得分，psmatch2 内部完成",
+    "cases": [
+      {
+        "title": "用 PSM 评估培训对工资的影响",
+        "setup": "treat(是否参加培训) wage(工资) age educ experience",
+        "code": "ssc install psmatch2   // 首次使用需安装\npsmatch2 treat age educ experience, outcome(wage) logit ate",
+        "output_key": "ATT 即处理组平均处理效应；需做平衡性检验（pstest）确认匹配质量",
+        "interpretation": "PSM 依赖\"条件独立假设\"——控制了匹配变量后，处理分配与潜在结果无关"
+      }
+    ],
+    "also_see": [
+      "teffects",
+      "pstest",
+      "pssensity",
+      "cem"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "heckman",
+    "keywords": [
+      "样本选择",
+      "heckman两阶段",
+      "选择偏差",
+      "Heckman"
+    ],
+    "command": "heckman",
+    "description": "Heckman 两阶段样本选择模型——纠正因非随机选择导致的估计偏误",
+    "syntax_detail": "heckman y x1 x2, select(select_var = z1 z2)",
+    "prerequisites": "选择方程中应包含至少一个排除变量（影响选择但不直接影响结果）",
+    "cases": [
+      {
+        "title": "纠正工资方程中的就业选择偏差",
+        "setup": "wage 只对就业者观测到；用婚姻状况和子女数作为选择方程的排除变量",
+        "code": "heckman wage educ age, select(employed = educ age married children)",
+        "output_key": "lambda（逆米尔斯比率）显著说明存在选择偏差；纠正后的系数更可靠",
+        "interpretation": "排除变量的选择是关键——必须理论上影响就业但不直接影响工资"
+      }
+    ],
+    "also_see": [
+      "etregress",
+      "tobit",
+      "ivregress"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "probit",
+    "keywords": [
+      "probit",
+      "概率模型",
+      "二元选择"
+    ],
+    "command": "probit",
+    "description": "Probit 模型——与 logit 同属二值选择模型，使用标准正态分布作为链接函数",
+    "syntax_detail": "probit y x1 x2 ..., robust",
+    "prerequisites": "因变量为 0/1",
+    "cases": [
+      {
+        "title": "与 logit 对比分析哪些因素影响进口车概率",
+        "setup": "sysuse auto, clear",
+        "code": "logit foreign price mpg weight, or\nestimates store m1\nprobit foreign price mpg weight\nestimates store m2\nestimates table m1 m2, star",
+        "output_key": "logit 和 probit 的符号和显著性几乎相同，但系数不可直接比较（尺度不同）",
+        "interpretation": "经济学中 logit 使用更广；probit 的边际效应需用 margins 计算"
+      }
+    ],
+    "also_see": [
+      "logit",
+      "margins",
+      "oprobit",
+      "mprobit"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "oprobit",
+    "keywords": [
+      "有序probit",
+      "定序",
+      "排序选择",
+      "李克特",
+      "ordinal"
+    ],
+    "command": "oprobit",
+    "description": "有序选择模型——因变量为有序分类变量（如满意度 1-5、学历 1-4）",
+    "syntax_detail": "oprobit y x1 x2 ...\nologit y x1 x2 ..., or",
+    "prerequisites": "因变量为 1,2,3... 的有序整数",
+    "cases": [
+      {
+        "title": "分析影响修理记录等级的因素",
+        "setup": "sysuse auto, clear",
+        "code": "ologit rep78 price mpg weight, or",
+        "output_key": "OR>1 表示该变量增加时，更高等级修理记录的概率上升",
+        "interpretation": "有序 logit 的平行回归假设需用 brant 检验验证"
+      }
+    ],
+    "also_see": [
+      "logit",
+      "probit",
+      "mlogit",
+      "margins"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "mlogit",
+    "keywords": [
+      "多项logit",
+      "多项选择",
+      "多分类",
+      "multinomial"
+    ],
+    "command": "mlogit",
+    "description": "多项 Logit 模型——因变量为多分类变量（选项无顺序关系）",
+    "syntax_detail": "mlogit y x1 x2 ..., basecategory(#) rrr",
+    "prerequisites": "因变量为分类变量（3个及以上取值，无顺序关系）",
+    "cases": [
+      {
+        "title": "分析汽车产地选择的多种可能",
+        "setup": "sysuse auto, clear",
+        "code": "mlogit rep78 price mpg weight, basecategory(3) rrr",
+        "output_key": "如果不只有国产/进口，还有日系/美系/欧系，mlogit 是合适的选择",
+        "interpretation": "mlogit 假设选项间独立（IIA 假设），可用 Hausman 检验验证"
+      }
+    ],
+    "also_see": [
+      "logit",
+      "probit",
+      "oprobit",
+      "clogit"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "tobit",
+    "keywords": [
+      "删截",
+      "截断",
+      "受限因变量",
+      "tobit",
+      "角点解"
+    ],
+    "command": "tobit",
+    "description": "Tobit 模型——因变量存在删截（censored），如大量 0 值但连续为正",
+    "syntax_detail": "tobit y x1 x2 ..., ll(0)       // 左删截于 0\ntobit y x1 x2 ..., ul(#)       // 右删截",
+    "prerequisites": "需指定删截边界 ll() 或 ul()",
+    "cases": [
+      {
+        "title": "分析研发投入的影响因素（很多企业研发为0）",
+        "setup": "因变量 RD 为非负值，约 30% 取值为 0",
+        "code": "tobit RD size age profit, ll(0) robust",
+        "output_key": "系数反映了对潜在 RD 的边际效应；实际效应需用 margins 进一步计算",
+        "interpretation": "Tobit 假设\"0值\"和\"正值\"由同一过程生成；若过程不同，考虑 craggit 或 heckman"
+      }
+    ],
+    "also_see": [
+      "heckman",
+      "qreg",
+      "logit",
+      "churdle"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "qreg",
+    "keywords": [
+      "分位数回归",
+      "quantile",
+      "中位数回归",
+      "LAD",
+      "分位点"
+    ],
+    "command": "qreg",
+    "description": "分位数回归——估计解释变量对因变量不同分位点的影响（而不仅是均值）",
+    "syntax_detail": "qreg y x1 x2, quantile(0.5)       // 中位数回归\nqreg y x1 x2, quantile(0.25)      // 1/4 分位点\nqreg y x1 x2, quantile(0.75)      // 3/4 分位点",
+    "prerequisites": "对极端值和异方差稳健",
+    "cases": [
+      {
+        "title": "考察体重对价格的影响在不同分位点是否不同",
+        "setup": "sysuse auto, clear",
+        "code": "qreg price weight mpg, quantile(0.25)\nqreg price weight mpg, quantile(0.5)\nqreg price weight mpg, quantile(0.75)",
+        "output_key": "三个分位点的系数对比——若差异大，说明存在异质性处理效应",
+        "interpretation": "qreg 不依赖正态假设，对离群值天然稳健，适合分析分布异质性"
+      }
+    ],
+    "also_see": [
+      "regress",
+      "sqreg",
+      "bsqreg",
+      "ivqreg2"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "anova",
+    "keywords": [
+      "方差分析",
+      "ANOVA",
+      "多组比较",
+      "因子分析"
+    ],
+    "command": "anova",
+    "description": "方差分析——比较多组均值是否存在显著差异",
+    "syntax_detail": "oneway y groupvar              // 单因素 ANOVA\nanova y groupvar1 groupvar2    // 多因素 ANOVA",
+    "prerequisites": "因变量为连续变量，分组变量为分类变量",
+    "cases": [
+      {
+        "title": "比较不同修理记录级别的价格是否有差异",
+        "setup": "sysuse auto, clear",
+        "code": "oneway price rep78, tabulate",
+        "output_key": "F 检验结果和每组的均值/标准差；若 P<0.05，至少有一组均值不同",
+        "interpretation": "F 检验只能说明\"至少有一组不同\"；事后两两比较用 Scheffe 或 Bonferroni 校正"
+      }
+    ],
+    "also_see": [
+      "ttest",
+      "regress",
+      "kwallis"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "predict",
+    "keywords": [
+      "预测",
+      "拟合值",
+      "残差",
+      "预测值"
+    ],
+    "command": "predict",
+    "description": "回归后生成预测值、残差、杠杆值等——回归分析后最常用的后估计命令",
+    "syntax_detail": "predict newvar, xb       // 线性预测值（拟合值）\npredict newvar, resid    // 残差\npredict newvar, stdp     // 预测值的标准误",
+    "prerequisites": "必须在回归命令之后立即运行",
+    "cases": [
+      {
+        "title": "生成回归拟合值和残差",
+        "setup": "sysuse auto, clear",
+        "code": "regress price mpg weight\npredict price_hat, xb\npredict price_resid, resid\nlist price price_hat price_resid in 1/5",
+        "output_key": "三列对比——拟合值与实际值的差距即残差",
+        "interpretation": "残差的正态性和同方差性是 OLS 的基本假设，后续用残差做诊断"
+      }
+    ],
+    "also_see": [
+      "margins",
+      "rvfplot",
+      "hettest",
+      "ovtest"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "margins",
+    "keywords": [
+      "边际效应",
+      "平均边际效应",
+      "AME",
+      "预测概率",
+      "边际"
+    ],
+    "command": "margins",
+    "description": "计算回归模型的边际效应或调整后的预测值——非线性模型解读的必备工具",
+    "syntax_detail": "margins, dydx(*)           // 所有变量的平均边际效应\nmargins, dydx(*) atmeans   // 在均值处的边际效应\nmargins 分组变量           // 各组的调整预测值",
+    "prerequisites": "回归命令后使用；对于 logit/probit 尤其关键",
+    "cases": [
+      {
+        "title": "计算 logit 模型的平均边际效应",
+        "setup": "sysuse auto, clear",
+        "code": "logit foreign price mpg weight\nmargins, dydx(*)",
+        "output_key": "每个变量对进口概率的平均边际效应——比 OR 更直观",
+        "interpretation": "AME 的含义：保持其他变量不变，x 增加 1 单位，事件概率平均变化多少"
+      }
+    ],
+    "also_see": [
+      "marginsplot",
+      "predict",
+      "test"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "test",
+    "keywords": [
+      "Wald检验",
+      "假设检验",
+      "联合检验",
+      "F检验",
+      "系数检验"
+    ],
+    "command": "test",
+    "description": "回归后的 Wald 检验——检验系数的线性约束条件",
+    "syntax_detail": "test x1             // 单个系数为 0\ntest x1 = x2         // 两系数相等\ntest x1 x2           // 联合显著（都等于 0）",
+    "prerequisites": "回归命令后使用",
+    "cases": [
+      {
+        "title": "检验 weight 和 displacement 的系数是否联合显著",
+        "setup": "sysuse auto, clear",
+        "code": "regress price mpg weight displacement\ntest weight displacement",
+        "output_key": "F 检验的 P 值——P<0.05 说明两变量联合显著",
+        "interpretation": "test 是论文中检验经济含义（如规模报酬不变、对称性）的标准工具"
+      }
+    ],
+    "also_see": [
+      "lincom",
+      "testnl",
+      "lrtest",
+      "nlcom"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "estimates",
+    "keywords": [
+      "存储结果",
+      "估计表",
+      "模型对比",
+      "回归表"
+    ],
+    "command": "estimates store / estimates table",
+    "description": "存储回归结果并生成对比表格——多模型比较的标准工作流",
+    "syntax_detail": "estimates store 模型名\nestimates table 模型名1 模型名2 ..., star stats(N r2)",
+    "prerequisites": "每个模型回归后立即 store",
+    "cases": [
+      {
+        "title": "逐步回归并生成对比表",
+        "setup": "sysuse auto, clear",
+        "code": "regress price mpg\nestimates store m1\nregress price mpg weight\nestimates store m2\nregress price mpg weight foreign\nestimates store m3\nestimates table m1 m2 m3, star stats(N r2 r2_a)",
+        "output_key": "三列并排展示：系数、显著性星星、N、R²、调整 R²",
+        "interpretation": "逐步增加控制变量后核心变量系数是否稳定，是稳健性检验的常用方法"
+      }
+    ],
+    "also_see": [
+      "esttab",
+      "outreg2",
+      "test",
+      "regress"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "esttab",
+    "keywords": [
+      "输出表格",
+      "回归表格",
+      "latex",
+      "word",
+      "发表表格",
+      "estout"
+    ],
+    "command": "esttab",
+    "description": "将 Stata 回归结果输出为论文级别的表格（LaTeX、Word、Excel 等格式）",
+    "syntax_detail": "esttab m1 m2 m3 using \"table.tex\", star(* 0.10 ** 0.05 *** 0.01) replace\nesttab m1 m2 m3 using \"table.csv\", replace",
+    "prerequisites": "需先 ssc install estout 安装",
+    "cases": [
+      {
+        "title": "生成可直接插入 LaTeX 论文的回归表格",
+        "setup": "sysuse auto, clear",
+        "code": "ssc install estout\nreg price mpg\nestimates store m1\nreg price mpg weight\nestimates store m2\nesttab m1 m2 using \"regression_table.tex\", star(* 0.10 ** 0.05 *** 0.01) replace",
+        "output_key": "生成 regression_table.tex，可直接在 LaTeX 中 \\input{}",
+        "interpretation": "esttab 是经济学论文中最主流的回归表格输出工具，配合 eststo/estadd 使用更灵活"
+      }
+    ],
+    "also_see": [
+      "outreg2",
+      "estimates",
+      "eststo",
+      "estadd"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "vif",
+    "keywords": [
+      "多重共线性",
+      "VIF",
+      "方差膨胀因子",
+      "共线性"
+    ],
+    "command": "vif",
+    "description": "计算方差膨胀因子——检测解释变量间是否存在严重的多重共线性",
+    "syntax_detail": "vif",
+    "prerequisites": "必须在 regress 之后使用",
+    "cases": [
+      {
+        "title": "检查回归模型的多重共线性",
+        "setup": "sysuse auto, clear",
+        "code": "regress price mpg weight length displacement\nvif",
+        "output_key": "若 VIF>10，该变量存在严重的多重共线性；>5 需引起注意",
+        "interpretation": "VIF=5 意味着该变量系数的方差是正交情形下的 5 倍——标准误膨胀，显著性检验不可靠"
+      }
+    ],
+    "also_see": [
+      "regress",
+      "correlate",
+      "pwcorr",
+      "collin"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "hettest",
+    "keywords": [
+      "异方差",
+      "BP检验",
+      "white检验",
+      "异方差检验"
+    ],
+    "command": "hettest",
+    "description": "异方差检验——Breusch-Pagan 检验和 White 检验",
+    "syntax_detail": "hettest                    // Breusch-Pagan 检验\nimtest, white               // White 检验",
+    "prerequisites": "回归后使用",
+    "cases": [
+      {
+        "title": "回归后检验是否存在异方差",
+        "setup": "sysuse auto, clear",
+        "code": "regress price mpg weight\nhettest\nimtest, white",
+        "output_key": "P<0.05 说明存在异方差——应使用 robust 标准误",
+        "interpretation": "异方差问题在截面数据中很常见；解决方案：使用 robust 或 vce(cluster) 选项"
+      }
+    ],
+    "also_see": [
+      "regress",
+      "rvfplot",
+      "vce"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "ovtest",
+    "keywords": [
+      "模型设定",
+      "函数形式",
+      "遗漏变量",
+      "RESET",
+      "设定检验"
+    ],
+    "command": "ovtest",
+    "description": "Ramsey RESET 检验——检验回归模型的函数形式是否设定正确",
+    "syntax_detail": "ovtest",
+    "prerequisites": "OLS 回归后使用",
+    "cases": [
+      {
+        "title": "检验价格回归的函数形式",
+        "setup": "sysuse auto, clear",
+        "code": "regress price mpg weight\novtest",
+        "output_key": "P<0.05 说明可能存在遗漏变量的平方项或交互项，函数形式设定有误",
+        "interpretation": "RESET 拒绝原假设时，可考虑加入平方项、交互项或取对数"
+      }
+    ],
+    "also_see": [
+      "linktest",
+      "regress",
+      "hettest"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "tsset",
+    "keywords": [
+      "时间序列",
+      "设定时间",
+      "时间声明"
+    ],
+    "command": "tsset",
+    "description": "声明时间序列数据结构——所有 ts 系列命令的前置步骤",
+    "syntax_detail": "tsset timevar",
+    "prerequisites": "时间变量必须是连续的整数（或 Stata 日期格式）",
+    "cases": [
+      {
+        "title": "设定年度时间序列",
+        "setup": "假设有 1990-2020 年的年度数据",
+        "code": "tsset year",
+        "output_key": "Stata 显示 time variable: year, 1990 to 2020, delta: 1 unit",
+        "interpretation": "tsset 后可以使用 L. D. F. 等时间算子"
+      }
+    ],
+    "also_see": [
+      "xtset",
+      "dfuller",
+      "var",
+      "newey"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "dfuller",
+    "keywords": [
+      "单位根",
+      "平稳性",
+      "ADF",
+      "Dickey-Fuller",
+      "单位根检验"
+    ],
+    "command": "dfuller",
+    "description": "ADF 单位根检验——判断时间序列是否平稳",
+    "syntax_detail": "dfuller varname, lags(#) trend\n* trend: 含趋势项; lags: 滞后阶数",
+    "prerequisites": "必须先 tsset",
+    "cases": [
+      {
+        "title": "检验 GDP 序列是否存在单位根",
+        "setup": "tsset year",
+        "code": "dfuller gdp, lags(4) trend",
+        "output_key": "P>0.05 说明存在单位根（非平稳），需差分后重新检验",
+        "interpretation": "先用含趋势的检验（trend），不显著再用仅含截距的，再不显著用无截距无趋势"
+      }
+    ],
+    "also_see": [
+      "pperron",
+      "dfgls",
+      "kpss",
+      "varsoc"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "var",
+    "keywords": [
+      "VAR",
+      "向量自回归",
+      "脉冲响应",
+      "格兰杰因果",
+      "方差分解"
+    ],
+    "command": "var",
+    "description": "向量自回归——多变量时间序列相互影响的动态模型",
+    "syntax_detail": "var y1 y2 y3, lags(1/4)\nirf create 模型名, step(#)\nirf graph irf       // 画脉冲响应图",
+    "prerequisites": "必须先 tsset；所有变量应平稳（或使用 VEC 模型）",
+    "cases": [
+      {
+        "title": "估计 GDP、通货膨胀和利率的 VAR 模型",
+        "setup": "tsset year; 变量 gdp_inf infl_rate interest",
+        "code": "varsoc gdp_inf infl_rate interest    // 最优滞后阶数\nvar gdp_inf infl_rate interest, lags(1/2)\nirf create var1, step(10)\nirf graph irf",
+        "output_key": "脉冲响应图展示一个变量冲击对其他变量的动态影响路径",
+        "interpretation": "VAR 是货币政策分析、宏观冲击传导的标准工具"
+      }
+    ],
+    "also_see": [
+      "svar",
+      "vec",
+      "vargranger",
+      "irf"
+    ],
+    "level": "高级"
+  },
+  {
+    "id": "newey",
+    "keywords": [
+      "序列相关",
+      "自相关",
+      "HAC",
+      "Newey-West",
+      "稳健标准误"
+    ],
+    "command": "newey",
+    "description": "Newey-West HAC 标准误回归——同时处理异方差和自相关",
+    "syntax_detail": "newey y x1 x2, lag(#)",
+    "prerequisites": "先 tsset；适用于时间序列数据",
+    "cases": [
+      {
+        "title": "时间序列回归（HAC 标准误）",
+        "setup": "tsset year",
+        "code": "newey gdp_growth inflation interest_rate, lag(4)",
+        "output_key": "系数估计与 OLS 相同，但标准误经过异方差和自相关修正",
+        "interpretation": "滞后阶数通常取 0.75 * T^(1/3)，或通过信息准则选择"
+      }
+    ],
+    "also_see": [
+      "regress",
+      "prais",
+      "arima",
+      "tsset"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "prais",
+    "keywords": [
+      "自相关",
+      "AR(1)",
+      "Prais-Winsten",
+      "序列相关"
+    ],
+    "command": "prais",
+    "description": "Prais-Winsten AR(1) 回归——处理一阶自相关的可行广义最小二乘法（FGLS）",
+    "syntax_detail": "prais y x1 x2",
+    "prerequisites": "先 tsset；假设误差项服从 AR(1) 过程",
+    "cases": [
+      {
+        "title": "修正一阶自相关的回归",
+        "setup": "tsset year",
+        "code": "prais gdp investment consumption",
+        "output_key": "报告变换后的 Durbin-Watson 统计量（接近 2 说明自相关已消除）",
+        "interpretation": "DW 统计量大幅偏离 2 时，说明 OLS 残差存在自相关，应使用 prais 或 newey"
+      }
+    ],
+    "also_see": [
+      "newey",
+      "arima",
+      "dwstat",
+      "regress"
+    ],
+    "level": "中级"
+  },
+  {
+    "id": "arch",
+    "keywords": [
+      "异方差",
+      "波动率",
+      "ARCH",
+      "GARCH",
+      "波动聚集"
+    ],
+    "command": "arch",
+    "description": "ARCH/GARCH 模型——建模时间序列的条件异方差（波动率聚集）",
+    "syntax_detail": "arch y x1 x2, arch(1) garch(1)\n* 金融时间序列的标配",
+    "prerequisites": "先 tsset；常用于金融收益率数据",
+    "cases": [
+      {
+        "title": "估计股指收益率的 GARCH(1,1) 模型",
+        "setup": "tsset date; 变量 stock_return",
+        "code": "arch stock_return, arch(1) garch(1)",
+        "output_key": "ARCH 和 GARCH 项系数之和接近 1 说明波动持续性强",
+        "interpretation": "GARCH 模型捕获了金融数据\"波动聚集\"的典型特征——大波动后往往跟着大波动"
+      }
+    ],
+    "also_see": [
+      "var",
+      "dfuller",
+      "mgarch"
+    ],
+    "level": "高级"
+  },
+  {
+    "id": "oneway",
+    "keywords": [
+      "单因素方差分析",
+      "one-way ANOVA",
+      "多组比较",
+      "组间差异",
+      "F检验"
+    ],
+    "command": "oneway",
+    "description": "单因素方差分析——比较三组及以上均值的差异，是 t 检验的推广",
+    "syntax_detail": "oneway 因变量 分组变量, tabulate bonferroni",
+    "prerequisites": "因变量连续，分组变量为分类（3组及以上）；需满足正态性和方差齐性",
+    "cases": [
+      {
+        "title": "比较不同修理记录等级的车价是否有差异",
+        "setup": "sysuse auto, clear",
+        "code": "oneway price rep78, tabulate\noneway price rep78, bonferroni",
+        "output_key": "F=3.39, P=0.012；事后检验显示 rep78=3 和 rep78=5 差异显著",
+        "interpretation": "F 检验显著说明至少有一组不同；bonferroni 选项给出两两比较的 P 值"
+      }
+    ],
+    "also_see": [
+      "anova",
+      "ttest",
+      "kwallis",
+      "bartlett"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "kwallis",
+    "keywords": [
+      "非参数检验",
+      "秩和检验",
+      "Kruskal-Wallis",
+      "多组秩和",
+      "非参数方差分析"
+    ],
+    "command": "kwallis",
+    "description": "Kruskal-Wallis 秩和检验——当正态性或方差齐性不满足时，替代单因素方差分析",
+    "syntax_detail": "kwallis 因变量, by(分组变量)",
+    "prerequisites": "因变量至少为有序变量；不要求正态分布",
+    "cases": [
+      {
+        "title": "数据不满足正态性时，用秩和检验比较多组",
+        "setup": "sysuse auto, clear",
+        "code": "kwallis price, by(rep78)",
+        "output_key": "卡方统计量和 P 值——P<0.05 说明至少有一组分布不同",
+        "interpretation": "Kruskal-Wallis 是比较中位数而非均值，对离群值和偏态分布稳健"
+      }
+    ],
+    "also_see": [
+      "oneway",
+      "anova",
+      "signrank",
+      "ranksum"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "signrank",
+    "keywords": [
+      "配对秩和",
+      "Wilcoxon符号秩",
+      "配对非参数",
+      "符号秩检验"
+    ],
+    "command": "signrank",
+    "description": "Wilcoxon 符号秩检验——配对样本的非参数检验（配对 t 检验的非参数替代）",
+    "syntax_detail": "signrank var1 = var2",
+    "prerequisites": "两变量为配对观测，差值至少为有序变量",
+    "cases": [
+      {
+        "title": "检验某种处理前后是否有差异（非参数配对检验）",
+        "setup": "sysuse auto, clear。假设 price 和 price_adj 为调整前后价格",
+        "code": "signrank price = price_adj",
+        "output_key": "z 统计量和 P 值——P<0.05 说明前后有显著差异",
+        "interpretation": "当配对差值严重偏态时，signrank 比配对 t 检验更可靠"
+      }
+    ],
+    "also_see": [
+      "ttest",
+      "ranksum",
+      "kwallis",
+      "friedman"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "ranksum",
+    "keywords": [
+      "秩和检验",
+      "Mann-Whitney",
+      "Wilcoxon秩和",
+      "两组独立",
+      "非参数t检验"
+    ],
+    "command": "ranksum",
+    "description": "Mann-Whitney U 检验（Wilcoxon 秩和检验）——独立两样本的非参数检验",
+    "syntax_detail": "ranksum 因变量, by(分组变量)",
+    "prerequisites": "因变量至少为有序变量，分组变量为二分类",
+    "cases": [
+      {
+        "title": "比较国产车和进口车价格的分布差异",
+        "setup": "sysuse auto, clear",
+        "code": "ranksum price, by(foreign)",
+        "output_key": "z 统计量和 P 值——判断两组分布是否相同",
+        "interpretation": "ranksum 比较的是秩和（中位数位置），比独立 t 检验更稳健"
+      }
+    ],
+    "also_see": [
+      "ttest",
+      "signrank",
+      "kwallis",
+      "oneway"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "sdtest",
+    "keywords": [
+      "方差齐性",
+      "方差比较",
+      "F检验方差",
+      "等方差检验",
+      "方差比"
+    ],
+    "command": "sdtest",
+    "description": "方差齐性检验——比较两个独立样本的方差（标准差）是否相等",
+    "syntax_detail": "sdtest 因变量, by(分组变量)",
+    "prerequisites": "因变量连续，分组变量二分类；t 检验前通常先做方差齐性检验",
+    "cases": [
+      {
+        "title": "t 检验前检查国产车和进口车价格的方差是否相等",
+        "setup": "sysuse auto, clear",
+        "code": "sdtest price, by(foreign)",
+        "output_key": "P<0.05 说明两组的方差显著不同——应使用 unequal 选项的 t 检验",
+        "interpretation": "这是独立 t 检验的标准前置步骤：先 sdtest 看方差，再决定 ttest 的选项"
+      }
+    ],
+    "also_see": [
+      "ttest",
+      "bartlett",
+      "oneway"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "bartlett",
+    "keywords": [
+      "方差齐性",
+      "Bartlett检验",
+      "等方差",
+      "多组方差",
+      "球形检验"
+    ],
+    "command": "bartlett / robvar",
+    "description": "Bartlett 方差齐性检验——多组间的方差是否相等的检验",
+    "syntax_detail": "bartlett 因变量, by(分组变量)\nrobvar 因变量, by(分组变量)   // 更稳健的替代",
+    "prerequisites": "因变量连续，分组变量为分类（3组及以上）；Bartlett 对正态性敏感",
+    "cases": [
+      {
+        "title": "方差分析前检验各组方差是否齐性",
+        "setup": "sysuse auto, clear",
+        "code": "oneway price rep78, tabulate\nbartlett price, by(rep78)\nrobvar price, by(rep78)",
+        "output_key": "Bartlett P>0.05 说明方差齐性成立，可以放心用 ANOVA",
+        "interpretation": "bartlett 对偏离正态敏感；数据非正态时用 robvar（Levene 型检验）"
+      }
+    ],
+    "also_see": [
+      "oneway",
+      "anova",
+      "sdtest",
+      "kwallis"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "friedman",
+    "keywords": [
+      "重复测量",
+      "区组",
+      "Friedman检验",
+      "非参数重复测量"
+    ],
+    "command": "friedman",
+    "description": "Friedman 检验——重复测量或随机化区组设计的非参数检验",
+    "syntax_detail": "friedman 因变量 处理变量 区组变量",
+    "prerequisites": "每个区组内有多个处理水平的重复测量；数据为有序或连续",
+    "cases": [
+      {
+        "title": "比较三种教学方法在学生中的效果（区组=学生）",
+        "setup": "假设数据: student method score，每个学生接受三种方法",
+        "code": "friedman score method student",
+        "output_key": "卡方统计量和 P 值；显著说明至少两种方法效果不同",
+        "interpretation": "Friedman 是重复测量 ANOVA 的非参数替代；区组变量控制了学生个体差异"
+      }
+    ],
+    "also_see": [
+      "signrank",
+      "kwallis",
+      "anova"
+    ],
+    "level": "初级"
+  },
+  {
+    "id": "power",
+    "keywords": [
+      "样本量",
+      "功效",
+      "power",
+      "样本大小",
+      "效应量",
+      "检验力"
+    ],
+    "command": "power",
+    "description": "功效分析和样本量计算——在研究设计阶段确定需要多少观测",
+    "syntax_detail": "power twomeans 均值1 均值2, sd(#) power(0.8)\npower onemean, ...\npower twoproportions, ...",
+    "prerequisites": "Stata 13+ 内置；研究设计阶段使用",
+    "cases": [
+      {
+        "title": "计算两组均值比较需要多少样本",
+        "setup": "预期两组均值差 10，标准差 15，α=0.05，功效 0.8",
+        "code": "power twomeans 100 110, sd(15) power(0.8)",
+        "output_key": "每组需要约 36 个观测（具体数值取决于参数设定）",
+        "interpretation": "功效分析应在数据收集前做——既能确保检测到实际效应，又避免浪费资源"
+      }
+    ],
+    "also_see": [
+      "ttest",
+      "oneway",
+      "sampsi"
+    ],
+    "level": "初级"
+  }
+];
+</script>
+<script>
+// ============ 搜索逻辑 ============
+
+function tokenize(text) {
+  // 简单中文分词：按标点、空格切，并提取连续的 2-4 字词组
+  const cleaned = text.replace(/[，。、\s,.!?;:；：！？]+/g, ' ').trim().toLowerCase();
+  const segments = cleaned.split(/\s+/).filter(s => s.length >= 1);
+
+  // 补充：生成 2-gram 词组，提升中文匹配精度
+  const bigrams = [];
+  for (const seg of segments) {
+    for (let i = 0; i < seg.length - 1; i++) {
+      bigrams.push(seg.substring(i, i + 2));
+    }
+    if (seg.length >= 3) {
+      for (let i = 0; i < seg.length - 2; i++) {
+        bigrams.push(seg.substring(i, i + 3));
+      }
+    }
+  }
+
+  return [...new Set([...segments, ...bigrams])].filter(w => w.length >= 1);
+}
+
+function scoreCommand(cmd, queryWords) {
+  let score = 0;
+  const matched = [];
+
+  const cmdId = cmd.id.toLowerCase();
+  const cmdName = cmd.command.toLowerCase();
+  const desc = (cmd.description || '').toLowerCase();
+
+  for (const w of queryWords) {
+    // 命令名精确命中
+    if (cmdId.includes(w) || w.includes(cmdId) || cmdName.includes(w)) {
+      score += 5;
+      matched.push(cmd.command);
+    }
+    // keywords 权重高
+    for (const kw of (cmd.keywords || [])) {
+      const kwl = kw.toLowerCase();
+      if (kwl.includes(w) || w.includes(kwl)) {
+        score += 3;
+        matched.push(kw);
+      }
+    }
+    // description
+    if (w.length >= 2 && desc.includes(w)) {
+      score += 1;
+    }
+  }
+
+  return [score, [...new Set(matched)]];
+}
+
+function search(query) {
+  const words = tokenize(query);
+  if (!words.length) return [];
+
+  let results = [];
+  for (const cmd of COMMANDS) {
+    const [s, matched] = scoreCommand(cmd, words);
+    if (s > 0) results.push({ score: s, matched, cmd });
+  }
+
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, 5);
+}
+
+// ============ 渲染 ============
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function renderCase(c, idx) {
+  let html = `<div class="case">`;
+  html += `<div class="case-title">案例 ${idx}: ${escapeHtml(c.title)}</div>`;
+  if (c.setup) html += `<div class="case-setup">准备: ${escapeHtml(c.setup)}</div>`;
+
+  const codeId = `code-${Date.now()}-${idx}-${Math.random().toString(36).slice(2,6)}`;
+  html += `<div class="case-code" id="${codeId}">`;
+  html += `<button class="copy-btn" onclick="copyCode('${codeId}')">复制</button>`;
+  html += escapeHtml(c.code);
+  html += `</div>`;
+
+  if (c.output_key) html += `<div class="case-output"><strong>结果:</strong> ${escapeHtml(c.output_key)}</div>`;
+  if (c.interpretation) html += `<div class="case-interp">${escapeHtml(c.interpretation)}</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function renderOptions(opts) {
+  if (!opts || !Object.keys(opts).length) return '';
+  let html = `<div class="section-title">常用选项</div><div class="options-list">`;
+  for (const [opt, desc] of Object.entries(opts)) {
+    html += `<div><code>${escapeHtml(opt)}</code></div><div>${escapeHtml(desc)}</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderCard(result, rank) {
+  const { score, matched, cmd } = result;
+  let html = `<div class="card">`;
+
+  // Header
+  html += `<div class="card-header">`;
+  html += `<span class="card-rank">#${rank}</span>`;
+  html += `<span class="card-cmd">${escapeHtml(cmd.command)}</span>`;
+  html += `<span class="card-level">${escapeHtml(cmd.level || '')}</span>`;
+  html += `<div class="card-desc">${escapeHtml(cmd.description)}</div>`;
+  html += `<div class="card-syntax">${escapeHtml(cmd.syntax_detail || cmd.command)}</div>`;
+  if (matched.length) {
+    html += `<div class="matched-tags">`;
+    for (const m of matched.slice(0, 5)) {
+      html += `<span>${escapeHtml(m)}</span>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // Body
+  html += `<div class="card-body">`;
+  html += renderOptions(cmd.common_options);
+
+  if (cmd.cases && cmd.cases.length) {
+    html += `<div class="section-title">可复现案例</div>`;
+    cmd.cases.forEach((c, i) => { html += renderCase(c, i + 1); });
+  }
+
+  html += `</div>`;
+
+  // Footer - related commands
+  if (cmd.also_see && cmd.also_see.length) {
+    html += `<div class="card-footer">`;
+    html += `<span class="label">相关命令:</span>`;
+    for (const ref of cmd.also_see) {
+      html += `<a href="javascript:void(0)" onclick="quickSearch('${escapeHtml(ref)}')">${escapeHtml(ref)}</a>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+// ============ Actions ============
+
+function doSearch() {
+  const q = document.getElementById('queryInput').value.trim();
+  if (!q) return;
+
+  const results = search(q);
+  const container = document.getElementById('results');
+
+  if (!results.length) {
+    container.innerHTML = `<div class="empty">
+      <span class="emoji">🔍</span><br>
+      没有找到与 "${escapeHtml(q)}" 匹配的命令<br>
+      <small>试试换一种描述方式，比如：数值转换、分组统计、合并数据</small>
+    </div>`;
+    return;
+  }
+
+  let html = `<div class="results-meta">查询 "${escapeHtml(q)}"，找到 ${results.length} 条结果</div>`;
+  results.forEach((r, i) => { html += renderCard(r, i + 1); });
+
+  container.innerHTML = html;
+}
+
+function quickSearch(text) {
+  document.getElementById('queryInput').value = text;
+  doSearch();
+}
+
+function copyCode(codeId) {
+  const el = document.getElementById(codeId);
+  if (!el) return;
+  // 提取纯代码文本（去掉复制按钮文字）
+  const btn = el.querySelector('.copy-btn');
+  const btnText = btn ? btn.textContent : '';
+  let code = el.textContent || '';
+  code = code.replace(btnText, '').trim();
+
+  navigator.clipboard.writeText(code).then(() => {
+    if (btn) {
+      btn.textContent = '已复制!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '复制';
+        btn.classList.remove('copied');
+      }, 1800);
+    }
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (btn) {
+      btn.textContent = '已复制!';
+      setTimeout(() => { btn.textContent = '复制'; }, 1800);
+    }
+  });
+}
+
+// Enter 键搜索
+document.getElementById('queryInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doSearch();
+});
+
+// 初始化统计栏
+(function() {
+  const total = COMMANDS.length;
+  const entry = COMMANDS.filter(c => c.level === '入门').length;
+  const basic = COMMANDS.filter(c => c.level === '初级').length;
+  const adv   = COMMANDS.filter(c => c.level === '中级' || c.level === '高级').length;
+  document.getElementById('cmdCount').textContent = total;
+  const spans = document.querySelectorAll('.stats-bar strong');
+  if (spans[0]) spans[0].textContent = total;
+  if (spans[1]) spans[1].textContent = entry;
+  if (spans[2]) spans[2].textContent = basic;
+  if (spans[3]) spans[3].textContent = adv;
+})();
+</script>
+
+<script>
+// 注册 Service Worker（PWA 离线支持）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function() {});
+}
+</script>
+</body>
+</html>
