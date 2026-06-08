@@ -3,245 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>管理后台 - 面板数据变量匹配工具</title>
+<title>管理后台</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh}
-.header{background:#1f2937;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+.header{background:#1f2937;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .header h1{font-size:18px}
-.container{max-width:640px;margin:24px auto;padding:0 16px}
-.card{background:#fff;border-radius:12px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.card h2{font-size:15px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #e5e7eb}
-label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151}
-input,textarea,select{width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:14px}
-input:focus,textarea:focus,select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}
-textarea{min-height:80px;resize:vertical}
-.help{font-size:11px;color:#9ca3af;margin-top:-10px;margin-bottom:14px}
-.btn{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s}
+.container{max-width:960px;margin:20px auto;padding:0 16px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.summary-card{background:#fff;border-radius:10px;padding:16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;transition:.2s;border:2px solid transparent}
+.summary-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.summary-card.active{border-color:#2563eb;background:#eff6ff}
+.summary-card .num{font-size:28px;font-weight:700;color:#2563eb}
+.summary-card .label{font-size:12px;color:#6b7280;margin-top:4px}
+.summary-card.free .num{color:#16a34a}
+.summary-card.monthly .num{color:#f59e0b}
+.summary-card.lifetime .num{color:#7c3aed}
+.summary-card.total .num{color:#1f2937}
+.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card h2{font-size:15px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f9fafb;padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid #e5e7eb;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+td .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-free{background:#dcfce7;color:#16a34a}
+.badge-monthly{background:#fef3c7;color:#d97706}
+.badge-lifetime{background:#ede9fe;color:#7c3aed}
+.badge-expired{background:#fef2f2;color:#dc2626}
+.badge-matcher{background:#dbeafe;color:#2563eb}
+.badge-stata{background:#fce7f3;color:#db2777}
+.badge-both{background:#e0e7ff;color:#4f46e5}
+.form-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:flex-end}
+.form-group{flex:1;min-width:100px}
+.form-group label{display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:#374151}
+.form-group input,.form-group select{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}
+.btn{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s;white-space:nowrap}
 .btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
 .btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
 .btn-outline{background:#fff;color:#374151;border:1px solid #d1d5db}.btn-outline:hover{background:#f9fafb}
-.btn-sm{padding:5px 12px;font-size:12px}
-.row{display:flex;gap:12px;align-items:center;margin-bottom:14px}
-.row label{margin-bottom:0;flex-shrink:0}
-.row input[type="checkbox"]{width:auto;margin-bottom:0}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-xs{padding:2px 8px;font-size:11px}
 .msg{position:fixed;top:16px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.15)}
 .msg-success{background:#16a34a;color:#fff}
 .msg-error{background:#dc2626;color:#fff}
-.status-bar{display:flex;align-items:center;gap:8px;font-size:13px;color:#6b7280}
-.dot{width:8px;height:8px;border-radius:50%}
-.dot-green{background:#16a34a}
-.dot-red{background:#dc2626}
-.preview{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto;color:#374151}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.toolbar input{flex:1;min-width:150px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
+.empty{text-align:center;padding:32px;color:#9ca3af;font-size:14px}
+.expired-row td{color:#9ca3af}
+.loading{padding:32px;text-align:center;color:#6b7280}
 </style>
 </head>
 <body>
 <div class="header">
 <h1>管理后台</h1>
-<div class="status-bar">
-<span class="dot" id="statusDot" style="width:8px;height:8px;border-radius:50%;background:#d1d5db"></span>
-<span id="statusText">加载中...</span>
-</div>
+<div id="statusText" style="font-size:13px;color:#9ca3af">加载中...</div>
 </div>
 
 <div class="container">
+<!-- 概览 -->
+<div class="summary" id="summaryCards"></div>
+
+<!-- 工具栏 -->
 <div class="card">
-<h2>全局开关</h2>
-<div class="row">
-<label><input type="checkbox" id="enabled" checked onchange="previewConfig()"> 启用网站</label>
+<div class="toolbar">
+<input type="text" id="searchInput" placeholder="搜索用户昵称或邮箱..." oninput="renderUserTable()">
+<select id="toolFilter" onchange="renderUserTable()" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+<option value="all">全部工具</option>
+<option value="matcher">变量匹配工具</option>
+<option value="stata">Stata查询助手</option>
+<option value="both">两个都有</option>
+</select>
+<button class="btn btn-primary" onclick="showAddForm()">+ 添加用户</button>
+<button class="btn btn-outline" onclick="loadData()">刷新</button>
+<button class="btn btn-outline" onclick="switchTab('settings')" style="margin-left:auto">全局设置</button>
 </div>
-<p class="help">取消勾选后，所有用户将看到"服务暂停"页面</p>
-</div>
-
-<div class="card">
-<h2>通知消息</h2>
-<textarea id="message" placeholder="留空则不显示。例如：新功能上线！支持正则匹配模式。" oninput="previewConfig()"></textarea>
-<p class="help">消息不为空时，顶部会显示黄色公告横幅</p>
-</div>
-
-<div class="card">
-<h2>强制重新激活</h2>
-<div class="row">
-<label><input type="checkbox" id="force_reactivate" onchange="previewConfig()"> 踢掉所有已激活用户</label>
-</div>
-<p class="help">勾选并保存后，所有用户都需要重新输入激活码</p>
+<div id="userTable"></div>
 </div>
 
-<div class="card">
-<h2>白名单（仅允许指定用户）</h2>
-<textarea id="whitelist" placeholder="每行一个用户昵称/邮箱，留空则不限制。例如：&#10;user1@qq.com&#10;user2@qq.com" oninput="previewConfig()"></textarea>
-<p class="help">白名单不为空时，只有列表中的用户能激活使用</p>
+<!-- 添加用户表单（隐藏） -->
+<div class="card" id="addForm" style="display:none">
+<h2 id="formTitle">添加用户</h2>
+<div class="form-row">
+<div class="form-group"><label>昵称/邮箱</label><input type="text" id="addName" placeholder="user@qq.com"></div>
+<div class="form-group"><label>激活码</label><input type="text" id="addKey" placeholder="16位激活码" maxlength="16" style="font-family:monospace;letter-spacing:2px;text-transform:uppercase"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>工具</label><select id="addTool"><option value="matcher">变量匹配工具</option><option value="stata">Stata查询助手</option><option value="both">两个都有</option></select></div>
+<div class="form-group"><label>类型</label><select id="addType" onchange="updateAddExpiry()"><option value="like_free">集赞免费</option><option value="monthly">按月付费</option><option value="lifetime">终身买断</option></select></div>
+<div class="form-group"><label>开始日期</label><input type="date" id="addStart" onchange="updateAddExpiry()"></div>
+<div class="form-group"><label>到期日期</label><input type="date" id="addExpiry" readonly></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>备注</label><input type="text" id="addNotes" placeholder="可选"></div>
+</div>
+<div style="display:flex;gap:8px">
+<button class="btn btn-primary" onclick="saveUser()">保存</button>
+<button class="btn btn-outline" onclick="document.getElementById('addForm').style.display='none'">取消</button>
+</div>
+<div id="genKeyBtn" style="margin-top:8px"><button class="btn btn-outline btn-sm" onclick="genKey()">自动生成激活码</button></div>
 </div>
 
-<div class="card" style="background:#fef2f2;border:1px solid #fecaca">
-<h2 style="color:#991b1b">&#128683; 黑名单（踢掉指定用户）</h2>
-<textarea id="blocklist" placeholder="每行一个用户昵称/邮箱，列入后该用户立即无法使用。例如：&#10;baduser@qq.com&#10;spammer@qq.com" oninput="previewConfig()"></textarea>
-<p style="font-size:12px;color:#991b1b">填入用户昵称/邮箱并保存，该用户下次打开页面时会被踢出。踢完后建议清空此处。</p>
-</div>
-
-<div class="card">
-<h2>配置预览</h2>
-<div class="preview" id="configPreview"></div>
-</div>
-
-<div style="display:flex;gap:12px;margin-bottom:24px">
-<button class="btn btn-primary" style="flex:1" onclick="saveConfig()">保存配置</button>
-<button class="btn btn-outline" onclick="loadConfig()">重新加载</button>
-</div>
-
-<div class="card" style="background:#fef2f2;border:1px solid #fecaca">
-<h2 style="color:#991b1b">紧急操作</h2>
-<button class="btn btn-danger" onclick="emergencyShutdown()">立即关闭网站（一键停服）</button>
-<p style="font-size:12px;color:#991b1b;margin-top:8px">点击后所有用户将无法访问，直到你重新启用</p>
+<!-- 全局设置（隐藏） -->
+<div class="card" id="settingsPanel" style="display:none">
+<h2>全局设置</h2>
+<div style="margin-bottom:12px"><label><input type="checkbox" id="matcherEnabled" onchange="markDirty()"> 变量匹配工具 - 启用</label></div>
+<div style="margin-bottom:12px"><label><input type="checkbox" id="stataEnabled" onchange="markDirty()"> Stata查询助手 - 启用</label></div>
+<div class="form-group"><label>通知消息（显示在页面顶部）</label><input type="text" id="globalMsg" placeholder="留空则不显示" onchange="markDirty()"></div>
+<button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
 </div>
 </div>
 
 <script>
-// GitHub Token（首次使用需输入）
+// ========== 状态 ==========
 var GH_TOKEN = localStorage.getItem('admin_gh_token') || '';
 var GH_REPO = 'kekukele006/panel-matcher';
-var GH_FILE = 'config.json';
+var USERS = [];
+var CONFIG = {};
+var currentTab = 'all';
+var editId = null;
 
 function getToken() {
     if (!GH_TOKEN) {
-        GH_TOKEN = prompt('请输入你的 GitHub Personal Access Token\n（只需输入一次，会保存在浏览器中）\n\n获取方式：github.com/settings/tokens → Generate new token → 勾选 repo → 生成后复制');
+        GH_TOKEN = prompt('请输入 GitHub Token（只需输入一次）\ngithub.com/settings/tokens → Generate → 勾选 repo');
         if (GH_TOKEN) localStorage.setItem('admin_gh_token', GH_TOKEN);
     }
     return GH_TOKEN;
-}
-
-// 更新状态点
-function updateStatusDot(config) {
-    var dot = document.getElementById('statusDot');
-    var txt = document.getElementById('statusText');
-    if (config.enabled) {
-        dot.style.background = '#16a34a';
-        txt.textContent = '运行中';
-    } else {
-        dot.style.background = '#dc2626';
-        txt.textContent = '已关闭';
-    }
-}
-
-function previewConfig() {
-    var config = {
-        enabled: document.getElementById('enabled').checked,
-        message: document.getElementById('message').value.trim(),
-        force_reactivate: document.getElementById('force_reactivate').checked,
-        whitelist: document.getElementById('whitelist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
-        blocklist: document.getElementById('blocklist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
-    };
-    updateStatusDot(config);
-    document.getElementById('configPreview').textContent = JSON.stringify(config, null, 2);
-}
-
-async function loadConfig() {
-    try {
-        var r = await fetch('config.json?t=' + Date.now());
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        var config = await r.json();
-        document.getElementById('enabled').checked = config.enabled !== false;
-        document.getElementById('message').value = config.message || '';
-        document.getElementById('force_reactivate').checked = !!config.force_reactivate;
-        document.getElementById('whitelist').value = (config.whitelist || []).join('\n');
-        document.getElementById('blocklist').value = (config.blocklist || []).join('\n');
-        previewConfig();
-        showMsg('配置已加载', 'success');
-    } catch(e) {
-        showMsg('加载失败：' + e.message, 'error');
-    }
-}
-
-async function saveConfig() {
-    var token = getToken();
-    if (!token) return;
-
-    var config = {
-        enabled: document.getElementById('enabled').checked,
-        message: document.getElementById('message').value.trim(),
-        force_reactivate: document.getElementById('force_reactivate').checked,
-        whitelist: document.getElementById('whitelist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
-        blocklist: document.getElementById('blocklist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
-    };
-
-    // 获取当前文件的 sha
-    var sha = '';
-    try {
-        var r1 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
-            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
-        });
-        if (r1.ok) {
-            var data = await r1.json();
-            sha = data.sha;
-        }
-    } catch(e) {}
-
-    var content = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2) + '\n')));
-    var body = {
-        message: '更新网站配置: ' + (config.enabled ? '启用' : '关闭'),
-        content: content,
-    };
-    if (sha) body.sha = sha;
-
-    try {
-        var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
-            method: 'PUT',
-            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        if (r2.ok) {
-            updateStatusDot(config);
-            showMsg('配置已保存！1-2分钟后生效', 'success');
-        } else {
-            var err = await r2.json();
-            showMsg('保存失败：' + (err.message || '未知错误'), 'error');
-        }
-    } catch(e) {
-        showMsg('网络错误：' + e.message, 'error');
-    }
-}
-
-async function emergencyShutdown() {
-    if (!confirm('确定要立即关闭网站吗？所有用户将无法访问！')) return;
-
-    var token = getToken();
-    if (!token) return;
-
-    var config = {
-        enabled: false,
-        message: '系统维护中，请稍后再试。',
-        force_reactivate: false,
-        whitelist: [],
-    };
-
-    var sha = '';
-    try {
-        var r1 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
-            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
-        });
-        if (r1.ok) { var data = await r1.json(); sha = data.sha; }
-    } catch(e) {}
-
-    var content = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2) + '\n')));
-    var body = { message: '紧急关闭网站', content: content };
-    if (sha) body.sha = sha;
-
-    try {
-        var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
-            method: 'PUT',
-            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        if (r2.ok) {
-            document.getElementById('enabled').checked = false;
-            previewConfig();
-            showMsg('网站已关闭！', 'success');
-        } else {
-            showMsg('操作失败', 'error');
-        }
-    } catch(e) {
-        showMsg('网络错误', 'error');
-    }
 }
 
 function showMsg(msg, type) {
@@ -252,8 +139,264 @@ function showMsg(msg, type) {
     setTimeout(function(){ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(function(){ el.remove() },300) }, 2500);
 }
 
-// 初始化
-loadConfig();
+// ========== 数据加载 ==========
+async function loadData() {
+    document.getElementById('statusText').textContent = '加载中...';
+    try {
+        var r1 = await fetch('users.json?t=' + Date.now());
+        if (r1.ok) { var d = await r1.json(); USERS = d.users || []; }
+        var r2 = await fetch('config.json?t=' + Date.now());
+        if (r2.ok) CONFIG = await r2.json();
+        document.getElementById('matcherEnabled').checked = CONFIG.enabled !== false;
+        document.getElementById('globalMsg').value = CONFIG.message || '';
+        if (typeof CONFIG.stata_enabled === 'undefined') CONFIG.stata_enabled = true;
+        document.getElementById('stataEnabled').checked = CONFIG.stata_enabled !== false;
+        updateSummary();
+        renderUserTable();
+        document.getElementById('statusText').textContent = USERS.length + ' 个用户';
+    } catch(e) {
+        document.getElementById('statusText').textContent = '加载失败';
+    }
+}
+
+// ========== 统计概览 ==========
+function updateSummary() {
+    var matcherFree = USERS.filter(function(u){ return u.tool==='matcher'&&u.type==='like_free'&&!isExpired(u) }).length;
+    var matcherMonthly = USERS.filter(function(u){ return u.tool==='matcher'&&u.type==='monthly'&&!isExpired(u) }).length;
+    var matcherLifetime = USERS.filter(function(u){ return u.tool==='matcher'&&u.type==='lifetime' }).length;
+    var stataFree = USERS.filter(function(u){ return u.tool==='stata'&&u.type==='like_free' }).length;
+    var stataLifetime = USERS.filter(function(u){ return u.tool==='stata'&&u.type==='lifetime' }).length;
+    var bothCount = USERS.filter(function(u){ return u.tool==='both' }).length;
+    var expired = USERS.filter(function(u){ return isExpired(u) }).length;
+
+    document.getElementById('summaryCards').innerHTML =
+        '<div class="summary-card free'+(currentTab==='like_free'?' active':'')+'" onclick="switchTab(\'like_free\')"><div class="num">'+(matcherFree+stataFree)+'</div><div class="label">集赞免费</div></div>'+
+        '<div class="summary-card monthly'+(currentTab==='monthly'?' active':'')+'" onclick="switchTab(\'monthly\')"><div class="num">'+matcherMonthly+'</div><div class="label">按月付费</div></div>'+
+        '<div class="summary-card lifetime'+(currentTab==='lifetime'?' active':'')+'" onclick="switchTab(\'lifetime\')"><div class="num">'+(matcherLifetime+stataLifetime+bothCount)+'</div><div class="label">终身用户</div></div>'+
+        '<div class="summary-card'+(expired>0?'':'')+'" onclick="switchTab(\'expired\')"><div class="num" style="color:'+(expired>0?'#dc2626':'#6b7280')+'">'+expired+'</div><div class="label">已到期</div></div>'+
+        '<div class="summary-card total'+(currentTab==='all'?' active':'')+'" onclick="switchTab(\'all\')"><div class="num">'+USERS.length+'</div><div class="label">全部用户</div></div>';
+}
+
+// ========== 用户表格 ==========
+function isExpired(u) {
+    if (!u.expiry || u.type === 'lifetime') return false;
+    return new Date(u.expiry) < new Date();
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    updateSummary();
+    renderUserTable();
+}
+
+function renderUserTable() {
+    var search = document.getElementById('searchInput').value.toLowerCase();
+    var toolF = document.getElementById('toolFilter').value;
+    var list = USERS.filter(function(u) {
+        if (search && u.name.toLowerCase().indexOf(search) < 0) return false;
+        if (toolF !== 'all' && u.tool !== toolF) return false;
+        if (currentTab === 'like_free') return u.type === 'like_free' && !isExpired(u);
+        if (currentTab === 'monthly') return u.type === 'monthly' && !isExpired(u);
+        if (currentTab === 'lifetime') return u.type === 'lifetime';
+        if (currentTab === 'expired') return isExpired(u);
+        return true;
+    });
+
+    if (!list.length) {
+        document.getElementById('userTable').innerHTML = '<div class="empty">暂无匹配的用户</div>';
+        return;
+    }
+
+    var html = '<table><thead><tr><th>用户</th><th>激活码</th><th>工具</th><th>类型</th><th>开始</th><th>到期</th><th>状态</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+    list.forEach(function(u, i) {
+        var typeBadge = '', toolBadge = '';
+        if (u.type === 'like_free') typeBadge = '<span class="badge badge-free">集赞免费</span>';
+        else if (u.type === 'monthly') typeBadge = '<span class="badge badge-monthly">按月付费</span>';
+        else if (u.type === 'lifetime') typeBadge = '<span class="badge badge-lifetime">终身</span>';
+
+        if (u.tool === 'matcher') toolBadge = '<span class="badge badge-matcher">变量匹配</span>';
+        else if (u.tool === 'stata') toolBadge = '<span class="badge badge-stata">Stata查询</span>';
+        else toolBadge = '<span class="badge badge-both">两个</span>';
+
+        var exp = isExpired(u);
+        var statusHtml = exp ? '<span class="badge badge-expired">已到期</span>' :
+            (u.type === 'lifetime' ? '<span class="badge badge-lifetime">永久有效</span>' :
+            '<span style="font-size:11px;color:#16a34a">剩余 '+getRemaining(u)+'</span>');
+
+        var rowClass = exp ? ' class="expired-row"' : '';
+
+        html += '<tr'+rowClass+'>'+
+            '<td>'+escHtml(u.name)+'</td>'+
+            '<td style="font-family:monospace;font-size:11px">'+escHtml(u.key)+'</td>'+
+            '<td>'+toolBadge+'</td>'+
+            '<td>'+typeBadge+'</td>'+
+            '<td>'+(u.start||'-')+'</td>'+
+            '<td>'+(u.expiry||'永久')+'</td>'+
+            '<td>'+statusHtml+'</td>'+
+            '<td style="font-size:11px;color:#6b7280;max-width:80px;overflow:hidden;text-overflow:ellipsis">'+escHtml(u.notes||'')+'</td>'+
+            '<td style="white-space:nowrap">'+
+                '<button class="btn btn-outline btn-xs" onclick="editUser(\''+u.name+'\')">编辑</button> '+
+                '<button class="btn btn-danger btn-xs" onclick="deleteUser(\''+u.name+'\')">删除</button>'+
+            '</td>'+
+            '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('userTable').innerHTML = html;
+}
+
+function getRemaining(u) {
+    if (!u.expiry) return '永久';
+    var days = Math.ceil((new Date(u.expiry) - new Date()) / 86400000);
+    if (days <= 0) return '已到期';
+    if (days <= 1) return days + '天';
+    return days + '天';
+}
+
+function escHtml(s) { if(!s) return ''; var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ========== 添加/编辑用户 ==========
+var LIC_SECRET = "PanelMatcher2026_ChenJie_SecretKey!@#";
+
+function genKey() {
+    var name = document.getElementById('addName').value.trim();
+    if (!name) { showMsg('请先输入昵称', 'error'); return; }
+    var raw = name.toLowerCase() + LIC_SECRET;
+    var key = CryptoJS.MD5(raw).toString().substring(0, 16).toUpperCase();
+    document.getElementById('addKey').value = key;
+    showMsg('激活码已生成');
+}
+
+function showAddForm() {
+    editId = null;
+    document.getElementById('formTitle').textContent = '添加用户';
+    document.getElementById('addForm').style.display = 'block';
+    document.getElementById('addName').value = '';
+    document.getElementById('addKey').value = '';
+    document.getElementById('addTool').value = 'matcher';
+    document.getElementById('addType').value = 'like_free';
+    document.getElementById('addStart').value = new Date().toISOString().split('T')[0];
+    document.getElementById('addNotes').value = '';
+    document.getElementById('genKeyBtn').style.display = '';
+    updateAddExpiry();
+}
+
+function editUser(name) {
+    var u = USERS.find(function(x){ return x.name === name });
+    if (!u) return;
+    editId = name;
+    document.getElementById('formTitle').textContent = '编辑用户: ' + name;
+    document.getElementById('addForm').style.display = 'block';
+    document.getElementById('addName').value = u.name;
+    document.getElementById('addKey').value = u.key;
+    document.getElementById('addTool').value = u.tool || 'matcher';
+    document.getElementById('addType').value = u.type || 'like_free';
+    document.getElementById('addStart').value = u.start || '';
+    document.getElementById('addExpiry').value = u.expiry || '';
+    document.getElementById('addNotes').value = u.notes || '';
+    document.getElementById('genKeyBtn').style.display = 'none';
+}
+
+function updateAddExpiry() {
+    var tp = document.getElementById('addType').value;
+    var start = document.getElementById('addStart').value;
+    if (tp === 'lifetime') { document.getElementById('addExpiry').value = ''; return; }
+    if (!start) return;
+    var d = new Date(start);
+    if (tp === 'like_free') d.setDate(d.getDate() + 30);  // 30天
+    else if (tp === 'monthly') d.setDate(d.getDate() + 30);  // 30天
+    document.getElementById('addExpiry').value = d.toISOString().split('T')[0];
+}
+
+async function saveUser() {
+    var name = document.getElementById('addName').value.trim();
+    var key = document.getElementById('addKey').value.trim().toUpperCase();
+    if (!name || !key) { showMsg('请填写昵称和激活码', 'error'); return; }
+
+    var newUser = {
+        name: name,
+        key: key,
+        tool: document.getElementById('addTool').value,
+        type: document.getElementById('addType').value,
+        start: document.getElementById('addStart').value,
+        expiry: document.getElementById('addExpiry').value || null,
+        notes: document.getElementById('addNotes').value.trim(),
+    };
+
+    if (editId && editId !== name) {
+        USERS = USERS.filter(function(u){ return u.name !== editId });
+    } else if (editId) {
+        USERS = USERS.filter(function(u){ return u.name !== editId });
+    } else {
+        if (USERS.some(function(u){ return u.name === name })) {
+            showMsg('用户已存在', 'error'); return;
+        }
+    }
+    USERS.push(newUser);
+    await pushUsers('添加用户: ' + name);
+    document.getElementById('addForm').style.display = 'none';
+    updateSummary();
+    renderUserTable();
+}
+
+async function deleteUser(name) {
+    if (!confirm('确定删除用户 ' + name + ' 吗？')) return;
+    USERS = USERS.filter(function(u){ return u.name !== name });
+    await pushUsers('删除用户: ' + name);
+    updateSummary();
+    renderUserTable();
+}
+
+// ========== GitHub API 操作 ==========
+async function pushUsers(msg) {
+    var token = getToken();
+    if (!token) return;
+    try {
+        var r1 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/users.json', {
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        var sha = '';
+        if (r1.ok) { var d = await r1.json(); sha = d.sha; }
+        var content = btoa(unescape(encodeURIComponent(JSON.stringify({users: USERS, pricing: (await (await fetch('users.json')).json()).pricing}, null, 2) + '\n')));
+        var body = { message: msg || '更新用户数据', content: content };
+        if (sha) body.sha = sha;
+        var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/users.json', {
+            method: 'PUT',
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (r2.ok) { showMsg('保存成功！1-2分钟后生效'); }
+        else { var err = await r2.json(); showMsg('保存失败: ' + (err.message||'未知'), 'error'); }
+    } catch(e) { showMsg('网络错误: ' + e.message, 'error'); }
+}
+
+async function saveSettings() {
+    var token = getToken();
+    if (!token) return;
+    CONFIG.enabled = document.getElementById('matcherEnabled').checked;
+    CONFIG.stata_enabled = document.getElementById('stataEnabled').checked;
+    CONFIG.message = document.getElementById('globalMsg').value.trim();
+    try {
+        var r1 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/config.json', {
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        var sha = ''; if (r1.ok) { var d = await r1.json(); sha = d.sha; }
+        var content = btoa(unescape(encodeURIComponent(JSON.stringify(CONFIG, null, 2) + '\n')));
+        var body = { message: '更新全局设置', content: content };
+        if (sha) body.sha = sha;
+        var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/config.json', {
+            method: 'PUT',
+            headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (r2.ok) showMsg('设置已保存');
+        else showMsg('保存失败', 'error');
+    } catch(e) { showMsg('网络错误', 'error'); }
+}
+
+function markDirty() {}
+
+// ========== 初始化 ==========
+loadData();
 </script>
 </body>
 </html>

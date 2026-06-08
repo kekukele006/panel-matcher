@@ -512,8 +512,8 @@
 <div id="licenseError" style="color:#dc2626;font-size:12px;margin-bottom:12px;display:none"></div>
 <button onclick="activateLicense()" style="width:100%;padding:10px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">激活</button>
 <div style="font-size:11px;color:#9ca3af;line-height:1.6">
-<p><span style="color:#dc2626">集赞免费：</span>转发并集满30个赞，截图发给客服获取终身激活码</p>
-<p>付费用户请联系公众号客服购买</p>
+<p>&#127881; <span style="color:#16a34a">集赞免费：</span>转发集赞30个 → 终身免费使用</p>
+<p style="margin-top:4px">联系公众号客服获取激活码</p>
 </div>
 </div>
 </div>
@@ -643,6 +643,14 @@ function activateLicense() {
     .then(function(config){
         if (config) REMOTE_CONFIG = config;
 
+        // 工具级关闭
+        if (REMOTE_CONFIG.stata_enabled === false) {
+            showLicenseModal();
+            document.getElementById('licenseError').style.display='block';
+            document.getElementById('licenseError').textContent='Stata查询助手暂时关闭维护，请稍后再试';
+            return;
+        }
+
         // 黑名单检查
         var bl = REMOTE_CONFIG.blocklist || [];
         if (bl.length>0) {
@@ -652,7 +660,7 @@ function activateLicense() {
             }
         }
 
-        // 已激活 -> 直接通过
+        // 已激活 -> 检查到期时间
         if (checkLicense()) {
             var wl = REMOTE_CONFIG.whitelist || [];
             if (wl.length>0) {
@@ -661,7 +669,27 @@ function activateLicense() {
                     localStorage.removeItem('stata_license');
                 }
             }
-            if (checkLicense()) return;
+            if (checkLicense()) {
+                // 远程到期检查
+                fetch('users.json?t=' + Date.now())
+                .then(function(r2){ return r2.ok ? r2.json() : null; })
+                .then(function(udb){
+                    if (udb && udb.users) {
+                        var lu = getLicensedUser();
+                        var remote = udb.users.find(function(u){
+                            return u.name.toLowerCase()===lu.toLowerCase() && (u.tool==='stata'||u.tool==='both');
+                        });
+                        if (remote && remote.expiry && remote.type !== 'lifetime') {
+                            if (new Date(remote.expiry) < new Date()) {
+                                localStorage.removeItem('stata_license');
+                                showLicenseModal();
+                                return;
+                            }
+                        }
+                    }
+                }).catch(function(){});
+                return;
+            }
         }
 
         // 试用期检查

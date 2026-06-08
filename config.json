@@ -1,7 +1,1 @@
-{
-  "enabled": true,
-  "message": "",
-  "force_reactivate": false,
-  "whitelist": [],
-  "blocklist": []
-}
+{"enabled":true,"stata_enabled":true,"message":"","force_reactivate":false,"whitelist":[],"blocklist":[]}
