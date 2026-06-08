@@ -442,54 +442,47 @@ function checkTrial() {
 
 // 启动时：读取远程配置 + 用户数据库 -> 检查许可证
 (function() {
+    // 试用和激活不依赖远程配置，优先执行
+    if (checkLicense()) {
+        document.getElementById('licenseModal').style.display = 'none';
+    } else if (checkTrial()) {
+        var elapsed = Date.now() - parseInt(localStorage.getItem('panel_matcher_trial'));
+        var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed / 1000));
+        var rm = Math.floor(remaining / 60);
+        var rs = remaining % 60;
+        var banner = document.getElementById('remoteBanner');
+        banner.textContent = '试用剩余：' + rm + '分' + rs + '秒 | 集赞30个获取终身免费激活码';
+        banner.style.display = 'block';
+    } else {
+        document.getElementById('licenseModal').style.display = 'flex';
+    }
+
+    // 远程配置（异步加载，不阻塞）
     fetch('config.json?t=' + Date.now())
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(config){
-        if (config) REMOTE_CONFIG = config;
+        if (!config) return;
+        REMOTE_CONFIG = config;
 
-        // 1. 全局关闭
         if (!REMOTE_CONFIG.enabled) {
             document.getElementById('disabledModal').style.display = 'flex';
             document.getElementById('disabledMsg').textContent = REMOTE_CONFIG.message || '系统维护中，请稍后再试。';
             return;
         }
 
-        // 2. 远程消息横幅
         if (REMOTE_CONFIG.message) {
-            var banner = document.getElementById('remoteBanner');
-            banner.textContent = REMOTE_CONFIG.message;
-            banner.style.display = 'block';
+            var b = document.getElementById('remoteBanner');
+            b.textContent = REMOTE_CONFIG.message;
+            b.style.display = 'block';
         }
 
-        // 3. 黑名单检查
         var bl = REMOTE_CONFIG.blocklist || [];
         if (bl.length > 0) {
-            var licensedUser = getLicensedUser();
-            if (bl.some(function(u){ return u.toLowerCase() === licensedUser.toLowerCase(); })) {
+            var lu = getLicensedUser();
+            if (bl.some(function(u){ return u.toLowerCase() === lu.toLowerCase(); })) {
                 localStorage.removeItem('panel_matcher_license');
             }
         }
-
-        // 4. 已激活 -> 直接通过
-        if (checkLicense()) {
-            document.getElementById('licenseModal').style.display = 'none';
-            return;
-        }
-
-        // 5. 试用期
-        if (checkTrial()) {
-            var elapsed = Date.now() - parseInt(localStorage.getItem('panel_matcher_trial'));
-            var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed / 1000));
-            var rm = Math.floor(remaining / 60);
-            var rs = remaining % 60;
-            var banner = document.getElementById('remoteBanner');
-            banner.textContent = '试用剩余：' + rm + '分' + rs + '秒 | 集赞30个获取终身免费激活码';
-            banner.style.display = 'block';
-            return;
-        }
-
-        // 6. 试用过期，显示激活窗
-        document.getElementById('licenseModal').style.display = 'flex';
     })
     .catch(function(){});
 })();

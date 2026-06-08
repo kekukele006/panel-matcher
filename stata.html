@@ -635,75 +635,42 @@ function activateLicense() {
     }
 }
 
-// 启动时检查
+// 启动时检查 - 试用和激活优先，不依赖远程配置
 (function() {
+    if (checkLicense()) {
+        hideLicenseModal();
+        return;
+    }
+    if (checkTrial()) {
+        var elapsed = Date.now() - parseInt(localStorage.getItem('stata_trial_start'));
+        var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed/1000));
+        var remainingM = Math.floor(remaining / 60);
+        var remainingS = remaining % 60;
+        document.getElementById('trialBanner').style.display = 'block';
+        document.getElementById('trialBannerMsg').textContent = '试用剩余：' + remainingM + '分' + remainingS + '秒 | 集赞30个获取终身免费激活码';
+    } else {
+        showLicenseModal();
+    }
+
+    // 远程配置（异步，不阻塞）
     fetch('config.json?t=' + Date.now())
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(config){
-        if (config) REMOTE_CONFIG = config;
+        if (!config) return;
+        REMOTE_CONFIG = config;
 
-        // 工具级关闭
         if (REMOTE_CONFIG.stata_enabled === false) {
             showLicenseModal();
-            document.getElementById('licenseError').style.display='block';
-            document.getElementById('licenseError').textContent='Stata查询助手暂时关闭维护，请稍后再试';
             return;
         }
 
-        // 黑名单检查
         var bl = REMOTE_CONFIG.blocklist || [];
         if (bl.length>0) {
-            var licensedUser = getLicensedUser();
-            if (bl.some(function(u){ return u.toLowerCase()===licensedUser.toLowerCase(); })) {
+            var lu = getLicensedUser();
+            if (bl.some(function(u){ return u.toLowerCase()===lu.toLowerCase(); })) {
                 localStorage.removeItem('stata_license');
             }
         }
-
-        // 已激活 -> 检查到期时间
-        if (checkLicense()) {
-            var wl = REMOTE_CONFIG.whitelist || [];
-            if (wl.length>0) {
-                var user = getLicensedUser();
-                if (!wl.some(function(u){ return u.toLowerCase()===user.toLowerCase(); })) {
-                    localStorage.removeItem('stata_license');
-                }
-            }
-            if (checkLicense()) {
-                // 远程到期检查
-                fetch('users.json?t=' + Date.now())
-                .then(function(r2){ return r2.ok ? r2.json() : null; })
-                .then(function(udb){
-                    if (udb && udb.users) {
-                        var lu = getLicensedUser();
-                        var remote = udb.users.find(function(u){
-                            return u.name.toLowerCase()===lu.toLowerCase() && u.tool==='stata';
-                        });
-                        if (remote && remote.expiry && remote.type !== 'lifetime') {
-                            if (new Date(remote.expiry) < new Date()) {
-                                localStorage.removeItem('stata_license');
-                                showLicenseModal();
-                                return;
-                            }
-                        }
-                    }
-                }).catch(function(){});
-                return;
-            }
-        }
-
-        // 试用期检查
-        if (checkTrial()) {
-            var elapsed = Date.now() - parseInt(localStorage.getItem('stata_trial_start'));
-            var remaining = Math.max(0, TRIAL_HOURS * 3600 - Math.floor(elapsed/1000));
-            var remainingM = Math.floor(remaining / 60);
-            var remainingS = remaining % 60;
-            document.getElementById('trialBanner').style.display = 'block';
-            document.getElementById('trialBannerMsg').textContent = '试用剩余：' + remainingM + '分' + remainingS + '秒 | 集赞30个获取终身免费激活码';
-            return;
-        }
-
-        // 试用过期，显示激活
-        showLicenseModal();
     })
     .catch(function(){});
 })();
