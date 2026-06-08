@@ -1,5 +1,15 @@
 {
-  "users": [],
+  "users": [
+    {
+      "name": "Lisa",
+      "key": "86B9076143272C25",
+      "tool": "stata",
+      "type": "lifetime",
+      "start": "2026-06-08",
+      "expiry": null,
+      "notes": ""
+    }
+  ],
   "pricing": {
     "matcher": {
       "like_free": {
