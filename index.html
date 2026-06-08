@@ -154,10 +154,10 @@ textarea{min-height:80px;resize:vertical}
 </div>
 
 <!-- ========== 激活弹窗 ========== -->
-<div class="history-modal" id="licenseModal" style="display:flex">
+<div class="history-modal" id="licenseModal" style="display:none">
 <div class="history-panel" style="max-width:480px;text-align:center">
-<h2 style="font-size:18px;margin-bottom:4px">&#128274; 激活工具</h2>
-<p style="font-size:13px;color:var(--gray-500);margin-bottom:12px">请激活后使用</p>
+<h2 style="font-size:18px;margin-bottom:4px">&#128274; 试用已到期</h2>
+<p style="font-size:13px;color:var(--gray-500);margin-bottom:12px">20分钟免费试用已结束，请激活后继续使用</p>
 <div class="form-group" style="text-align:left">
 <label>昵称 / 邮箱</label>
 <input type="text" id="licenseUser" placeholder="输入您的昵称或邮箱">
@@ -169,8 +169,7 @@ textarea{min-height:80px;resize:vertical}
 <div id="licenseError" style="color:var(--error);font-size:12px;margin-bottom:12px;display:none"></div>
 <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="activateLicense()">激活</button>
 <div style="font-size:11px;color:var(--gray-400);line-height:1.6">
-<p>&#127881; <span style="color:#16a34a">集赞免费：</span>转发集赞30个 → 免费使用1个月</p>
-<p>&#128176; <span style="color:#2563eb">4.99元/月</span> 或 <span style="color:#7c3aed">16.99元终身</span></p>
+<p>&#127881; <span style="color:#16a34a">集赞终身免费：</span>转发本文到朋友圈，集满30个赞，截图发给客服 → <strong>终身免费使用</strong></p>
 <p style="margin-top:4px">联系公众号客服获取激活码</p>
 </div>
 </div>
@@ -434,6 +433,14 @@ function activateLicense() {
     }
 }
 
+// ========== 试用系统 ==========
+var TRIAL_MINUTES = 20;
+function checkTrial() {
+    var trialStart = localStorage.getItem('panel_matcher_trial');
+    if (!trialStart) { localStorage.setItem('panel_matcher_trial', Date.now()); return true; }
+    return (Date.now() - parseInt(trialStart)) < TRIAL_MINUTES * 60 * 1000;
+}
+
 // 启动时：读取远程配置 + 用户数据库 -> 检查许可证
 (function() {
     fetch('config.json?t=' + Date.now())
@@ -455,12 +462,7 @@ function activateLicense() {
             banner.style.display = 'block';
         }
 
-        // 3. 强制重新激活
-        if (REMOTE_CONFIG.force_reactivate) {
-            localStorage.removeItem('panel_matcher_license');
-        }
-
-        // 4. 黑名单检查
+        // 3. 黑名单检查
         var bl = REMOTE_CONFIG.blocklist || [];
         if (bl.length > 0) {
             var licensedUser = getLicensedUser();
@@ -469,40 +471,26 @@ function activateLicense() {
             }
         }
 
-        // 5. 许可证检查 + 到期验证
+        // 4. 已激活 -> 直接通过
         if (checkLicense()) {
-            var wl = REMOTE_CONFIG.whitelist || [];
-            if (wl.length > 0) {
-                var user = getLicensedUser();
-                if (!wl.some(function(u){ return u.toLowerCase() === user.toLowerCase(); })) {
-                    localStorage.removeItem('panel_matcher_license');
-                    document.getElementById('licenseModal').style.display = 'flex';
-                    return;
-                }
-            }
-            // 远程检查到期时间
-            fetch('users.json?t=' + Date.now())
-            .then(function(r2){ return r2.ok ? r2.json() : null; })
-            .then(function(udb){
-                if (udb && udb.users) {
-                    var licensedUser = getLicensedUser();
-                    var remote = udb.users.find(function(u){
-                        return u.name.toLowerCase() === licensedUser.toLowerCase() &&
-                               (u.tool === 'matcher' || u.tool === 'both');
-                    });
-                    if (remote && remote.expiry && remote.type !== 'lifetime') {
-                        if (new Date(remote.expiry) < new Date()) {
-                            localStorage.removeItem('panel_matcher_license');
-                            document.getElementById('licenseModal').style.display = 'flex';
-                            document.getElementById('licenseError').style.display = 'block';
-                            document.getElementById('licenseError').textContent = '您的使用期限已于 ' + remote.expiry + ' 到期，请续费';
-                            return;
-                        }
-                    }
-                }
-                document.getElementById('licenseModal').style.display = 'none';
-            }).catch(function(){ document.getElementById('licenseModal').style.display = 'none'; });
+            document.getElementById('licenseModal').style.display = 'none';
+            return;
         }
+
+        // 5. 试用期
+        if (checkTrial()) {
+            var elapsed = Date.now() - parseInt(localStorage.getItem('panel_matcher_trial'));
+            var remaining = Math.max(0, TRIAL_MINUTES * 60 - Math.floor(elapsed / 1000));
+            var rm = Math.floor(remaining / 60);
+            var rs = remaining % 60;
+            var banner = document.getElementById('remoteBanner');
+            banner.textContent = '试用剩余：' + rm + '分' + rs + '秒 | 集赞30个获取终身免费激活码';
+            banner.style.display = 'block';
+            return;
+        }
+
+        // 6. 试用过期，显示激活窗
+        document.getElementById('licenseModal').style.display = 'flex';
     })
     .catch(function(){});
 })();
