@@ -175,6 +175,18 @@ textarea{min-height:80px;resize:vertical}
 </div>
 </div>
 
+<!-- ========== 远程关闭遮罩 ========== -->
+<div class="history-modal" id="disabledModal" style="display:none">
+<div class="history-panel" style="max-width:480px;text-align:center">
+<h2 style="font-size:18px;margin-bottom:4px">&#128308; 服务暂停</h2>
+<p id="disabledMsg" style="font-size:14px;color:var(--gray-600);margin:16px 0">系统维护中，请稍后再试。</p>
+<p style="font-size:11px;color:var(--gray-400)">如有疑问请联系公众号客服</p>
+</div>
+</div>
+
+<!-- 远程消息横幅 -->
+<div id="remoteBanner" style="display:none;background:#fef3c7;color:#92400e;text-align:center;padding:10px;font-size:13px;border-bottom:1px solid #fde68a;position:sticky;top:0;z-index:49"></div>
+
 <!-- 加载遮罩 -->
 <div class="loading-overlay" id="loadingOverlay">
 <div class="spinner" style="width:40px;height:40px;border-width:3px"></div>
@@ -362,8 +374,9 @@ textarea{min-height:80px;resize:vertical}
 //  无需服务器，文件不会离开您的电脑
 // ============================================================
 
-// ========== 激活码系统 ==========
+// ========== 激活码 + 远程控制系统 ==========
 const LICENSE_SECRET = "PanelMatcher2026_ChenJie_SecretKey!@#";
+var REMOTE_CONFIG = { enabled: true, message: "", force_reactivate: false, whitelist: [] };
 
 function generateKey(userId) {
     var raw = userId.trim().toLowerCase() + LICENSE_SECRET;
@@ -378,6 +391,13 @@ function checkLicense() {
     } catch(e) { return false; }
 }
 
+function getLicensedUser() {
+    try {
+        var saved = JSON.parse(localStorage.getItem('panel_matcher_license') || 'null');
+        return saved ? saved.user : "";
+    } catch(e) { return ""; }
+}
+
 function activateLicense() {
     var user = document.getElementById('licenseUser').value.trim();
     var key = document.getElementById('licenseKey').value.trim().toUpperCase();
@@ -385,6 +405,14 @@ function activateLicense() {
 
     if (!user) { errEl.style.display = 'block'; errEl.textContent = '请输入昵称或邮箱'; return; }
     if (!key || key.length !== 16) { errEl.style.display = 'block'; errEl.textContent = '请输入正确的16位激活码'; return; }
+
+    // 检查远程白名单
+    var wl = REMOTE_CONFIG.whitelist || [];
+    if (wl.length > 0 && !wl.some(function(u){ return u.toLowerCase() === user.toLowerCase(); })) {
+        errEl.style.display = 'block';
+        errEl.textContent = '您的账号暂无使用权限，请联系客服开通';
+        return;
+    }
 
     var expected = generateKey(user);
     if (key === expected) {
@@ -397,11 +425,48 @@ function activateLicense() {
     }
 }
 
-// 启动时检查许可证
+// 启动时：读取远程配置 -> 检查许可证
 (function() {
-    if (checkLicense()) {
-        document.getElementById('licenseModal').style.display = 'none';
-    }
+    fetch('config.json?t=' + Date.now())
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(config){
+        if (config) REMOTE_CONFIG = config;
+
+        // 1. 全局关闭
+        if (!REMOTE_CONFIG.enabled) {
+            document.getElementById('disabledModal').style.display = 'flex';
+            document.getElementById('disabledMsg').textContent = REMOTE_CONFIG.message || '系统维护中，请稍后再试。';
+            return;
+        }
+
+        // 2. 远程消息横幅
+        if (REMOTE_CONFIG.message) {
+            var banner = document.getElementById('remoteBanner');
+            banner.textContent = REMOTE_CONFIG.message;
+            banner.style.display = 'block';
+        }
+
+        // 3. 强制重新激活
+        if (REMOTE_CONFIG.force_reactivate) {
+            localStorage.removeItem('panel_matcher_license');
+        }
+
+        // 4. 许可证检查
+        if (checkLicense()) {
+            // 白名单验证
+            var wl = REMOTE_CONFIG.whitelist || [];
+            if (wl.length > 0) {
+                var user = getLicensedUser();
+                if (!wl.some(function(u){ return u.toLowerCase() === user.toLowerCase(); })) {
+                    localStorage.removeItem('panel_matcher_license');
+                    document.getElementById('licenseModal').style.display = 'flex';
+                    return;
+                }
+            }
+            document.getElementById('licenseModal').style.display = 'none';
+        }
+    })
+    .catch(function(){});
 })();
 
 // ========== 全局状态 ==========

@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "message": "",
+  "force_reactivate": false,
+  "whitelist": [],
+  "note": "修改此文件即可远程控制网站。改完后 git commit && git push，1-2分钟生效。"
+}
