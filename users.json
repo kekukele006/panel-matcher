@@ -1,15 +1,5 @@
 {
-  "users": [
-    {
-      "name": "Lisa",
-      "key": "327FD61AD92EC8D6",
-      "tool": "both",
-      "type": "lifetime",
-      "start": "2026-06-08",
-      "expiry": null,
-      "notes": ""
-    }
-  ],
+  "users": [],
   "pricing": {
     "matcher": {
       "like_free": {
