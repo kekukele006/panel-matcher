@@ -404,8 +404,8 @@ async function saveUser() {
     } else if (editId) {
         USERS = USERS.filter(function(u){ return u.name !== editId });
     } else {
-        if (USERS.some(function(u){ return u.name === name })) {
-            showMsg('用户已存在', 'error'); return;
+        if (USERS.some(function(u){ return u.name === name && u.tool === newUser.tool })) {
+            showMsg('该用户在此工具下已存在', 'error'); return;
         }
     }
     USERS.push(newUser);
