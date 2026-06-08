@@ -376,7 +376,7 @@ textarea{min-height:80px;resize:vertical}
 
 // ========== 激活码 + 远程控制系统 ==========
 const LICENSE_SECRET = "PanelMatcher2026_ChenJie_SecretKey!@#";
-var REMOTE_CONFIG = { enabled: true, message: "", force_reactivate: false, whitelist: [] };
+var REMOTE_CONFIG = { enabled: true, message: "", force_reactivate: false, whitelist: [], blocklist: [] };
 
 function generateKey(userId) {
     var raw = userId.trim().toLowerCase() + LICENSE_SECRET;
@@ -405,6 +405,14 @@ function activateLicense() {
 
     if (!user) { errEl.style.display = 'block'; errEl.textContent = '请输入昵称或邮箱'; return; }
     if (!key || key.length !== 16) { errEl.style.display = 'block'; errEl.textContent = '请输入正确的16位激活码'; return; }
+
+    // 检查黑名单
+    var bl = REMOTE_CONFIG.blocklist || [];
+    if (bl.some(function(u){ return u.toLowerCase() === user.toLowerCase(); })) {
+        errEl.style.display = 'block';
+        errEl.textContent = '您的账号已被限制使用，请联系客服';
+        return;
+    }
 
     // 检查远程白名单
     var wl = REMOTE_CONFIG.whitelist || [];
@@ -451,7 +459,16 @@ function activateLicense() {
             localStorage.removeItem('panel_matcher_license');
         }
 
-        // 4. 许可证检查
+        // 4. 黑名单检查（单独踢人）
+        var bl = REMOTE_CONFIG.blocklist || [];
+        if (bl.length > 0) {
+            var licensedUser = getLicensedUser();
+            if (bl.some(function(u){ return u.toLowerCase() === licensedUser.toLowerCase(); })) {
+                localStorage.removeItem('panel_matcher_license');
+            }
+        }
+
+        // 5. 许可证检查
         if (checkLicense()) {
             // 白名单验证
             var wl = REMOTE_CONFIG.whitelist || [];

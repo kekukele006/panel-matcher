@@ -1,6 +1,1 @@
-{
-  "enabled": true,
-  "message": "",
-  "force_reactivate": false,
-  "whitelist": []
-}
+{"enabled":true,"message":"","force_reactivate":false,"whitelist":[],"blocklist":[]}

@@ -73,6 +73,12 @@ textarea{min-height:80px;resize:vertical}
 <p class="help">白名单不为空时，只有列表中的用户能激活使用</p>
 </div>
 
+<div class="card" style="background:#fef2f2;border:1px solid #fecaca">
+<h2 style="color:#991b1b">&#128683; 黑名单（踢掉指定用户）</h2>
+<textarea id="blocklist" placeholder="每行一个用户昵称/邮箱，列入后该用户立即无法使用。例如：&#10;baduser@qq.com&#10;spammer@qq.com" oninput="previewConfig()"></textarea>
+<p style="font-size:12px;color:#991b1b">填入用户昵称/邮箱并保存，该用户下次打开页面时会被踢出。踢完后建议清空此处。</p>
+</div>
+
 <div class="card">
 <h2>配置预览</h2>
 <div class="preview" id="configPreview"></div>
@@ -123,6 +129,7 @@ function previewConfig() {
         message: document.getElementById('message').value.trim(),
         force_reactivate: document.getElementById('force_reactivate').checked,
         whitelist: document.getElementById('whitelist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
+        blocklist: document.getElementById('blocklist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
     };
     updateStatusDot(config);
     document.getElementById('configPreview').textContent = JSON.stringify(config, null, 2);
@@ -137,6 +144,7 @@ async function loadConfig() {
         document.getElementById('message').value = config.message || '';
         document.getElementById('force_reactivate').checked = !!config.force_reactivate;
         document.getElementById('whitelist').value = (config.whitelist || []).join('\n');
+        document.getElementById('blocklist').value = (config.blocklist || []).join('\n');
         previewConfig();
         showMsg('配置已加载', 'success');
     } catch(e) {
@@ -153,6 +161,7 @@ async function saveConfig() {
         message: document.getElementById('message').value.trim(),
         force_reactivate: document.getElementById('force_reactivate').checked,
         whitelist: document.getElementById('whitelist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
+        blocklist: document.getElementById('blocklist').value.trim().split('\n').map(s=>s.trim()).filter(Boolean),
     };
 
     // 获取当前文件的 sha
