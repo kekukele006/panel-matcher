@@ -1,6 +1,6 @@
 {
-  "enabled": true,
-  "message": "",
+  "enabled": false,
+  "message": "系统维护中，请稍后再试。",
   "force_reactivate": false,
   "whitelist": []
 }
