@@ -71,6 +71,15 @@
       "start": "2026-06-09",
       "expiry": null,
       "notes": "杨天宇"
+    },
+    {
+      "name": "ttyyuu",
+      "key": "A94738BB41E2C616",
+      "tool": "stata",
+      "type": "lifetime",
+      "start": "2026-06-09",
+      "expiry": null,
+      "notes": ""
     }
   ],
   "pricing": {
