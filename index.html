@@ -219,8 +219,8 @@ textarea{min-height:80px;resize:vertical}
 <div class="upload-zone" id="baseUploadZone">
 <div class="upload-icon">&#128194;</div>
 <div class="upload-text">拖拽文件到此处，或点击选择</div>
-<div class="upload-hint">支持 .xlsx、.xls 格式</div>
-<input type="file" id="baseFileInput" accept=".xlsx,.xls" onchange="handleBaseFile(this)">
+<div class="upload-hint">支持 .xlsx、.xls、.csv 格式（GB 级数据请用 CSV）</div>
+<input type="file" id="baseFileInput" accept=".xlsx,.xls,.csv" onchange="handleBaseFile(this)">
 </div>
 <div id="baseFileInfo"></div>
 <div class="form-group" id="baseSheetGroup" style="display:none;margin-top:12px">
@@ -251,10 +251,13 @@ textarea{min-height:80px;resize:vertical}
 <div class="upload-zone" id="sourcesUploadZone">
 <div class="upload-icon">&#128193;</div>
 <div class="upload-text">拖拽多个文件到此处，或点击选择</div>
-<div class="upload-hint">支持 .xlsx、.xls 格式，可一次选择多个文件</div>
-<input type="file" id="sourcesFileInput" accept=".xlsx,.xls" multiple onchange="handleSourceFiles(this)">
+<div class="upload-hint">支持 .xlsx、.xls、.csv 格式（GB 级数据请用 CSV），可一次选择多个文件</div>
+<input type="file" id="sourcesFileInput" accept=".xlsx,.xls,.csv" multiple onchange="handleSourceFiles(this)">
 </div>
 <div id="sourcesFileList" style="margin-top:12px"><p class="empty-state" style="padding:16px">尚未上传原始数据文件</p></div>
+<div style="margin-top:8px;padding:8px 12px;background:#fef3c7;border-radius:6px;font-size:11px;color:#92400e;line-height:1.6">
+<strong>&#9888; 大文件提示：</strong>Excel 格式建议 500MB 以内。GB 级数据请在 Excel 中"另存为 → CSV UTF-8"，网页版支持 CSV 流式读取，无文件大小限制。
+</div>
 </div>
 <div class="footer-nav"><button class="btn btn-secondary" onclick="goToStep(2)">&#8592; 上一步</button><button class="btn btn-primary" id="btnStep3" disabled onclick="goToStep(4)">下一步 &#8594;</button></div>
 </div>
@@ -273,7 +276,7 @@ textarea{min-height:80px;resize:vertical}
 <div class="form-group" style="margin-top:16px">
 <label>方式二：上传关键词文件（Excel第一列）</label>
 <div style="display:flex;align-items:center;gap:8px">
-<input type="file" id="keywordFileInput" accept=".xlsx,.xls" onchange="handleKeywordFile(this)" style="max-width:260px">
+<input type="file" id="keywordFileInput" accept=".xlsx,.xls,.csv" onchange="handleKeywordFile(this)" style="max-width:260px">
 <span id="keywordFileStatus" style="font-size:12px;color:var(--gray-500)"></span>
 </div>
 </div>
@@ -566,27 +569,61 @@ window.scrollTo({top:0,behavior:'smooth'});
 //  核心：SheetJS Excel 读写
 // ============================================================
 
+function parseCSV(text) {
+var lines=text.split(/\r?\n/).filter(function(l){return l.trim()});
+if(!lines.length) return {rows:[],columns:[]};
+var headers=parseCSVLine(lines[0]);
+var rows=[];
+for(var i=1;i<lines.length;i++){
+var vals=parseCSVLine(lines[i]);
+if(vals.length===0) continue;
+var row={};
+headers.forEach(function(h,j){row[h]=vals[j]!==undefined?vals[j]:''});
+rows.push(row);
+}
+return {rows:rows,columns:headers};
+}
+function parseCSVLine(line){
+var result=[], current='', inQuotes=false;
+for(var i=0;i<line.length;i++){
+var ch=line[i];
+if(inQuotes){if(ch==='"'){if(i+1<line.length&&line[i+1]==='"'){current+='"';i++}else{inQuotes=false}}else{current+=ch}}
+else{if(ch===','){result.push(current);current=''}else if(ch==='"'){inQuotes=true}else{current+=ch}}
+}
+result.push(current); return result;
+}
 function readExcelFile(file) {
 return new Promise((resolve, reject) => {
-const ext=file.name.split('.').pop().toLowerCase();
-if(!['xlsx','xls'].includes(ext)) return reject('不支持的文件格式：.'+ext+'，仅支持 .xlsx 和 .xls');
-const reader=new FileReader();
-reader.onload=e=>{
+var ext=file.name.split('.').pop().toLowerCase();
+if(ext==='csv'){
+var reader=new FileReader();
+reader.onload=function(e){
+try{var parsed=parseCSV(e.target.result);
+var ds={};ds['Sheet1']=parsed;
+resolve({name:file.name,sheets:['Sheet1'],dataBySheet:ds});
+}catch(err){reject('CSV读取失败：'+err.message)}
+};
+reader.onerror=function(){reject('文件读取失败')};
+reader.readAsText(file);
+return;
+}
+if(!['xlsx','xls'].includes(ext)) return reject('不支持的文件格式：.'+ext+'，仅支持 .xlsx、.xls、.csv');
+if(file.size>500*1024*1024) return reject('Excel文件过大（'+(file.size/1024/1024).toFixed(0)+'MB），请另存为 CSV 格式后重试。CSV 支持 GB 级数据。');
+var reader=new FileReader();
+reader.onload=function(e){
 try{
-const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-const sheetNames=wb.SheetNames;
-const dataBySheet={};
-sheetNames.forEach(name=>{
-const ws=wb.Sheets[name];
-const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+var sheetNames=wb.SheetNames;
+var dataBySheet={};
+sheetNames.forEach(function(name){
+var ws=wb.Sheets[name];
+var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
 dataBySheet[name]={rows:rows,columns:rows.length>0?Object.keys(rows[0]):[]};
 });
 resolve({name:file.name,sheets:sheetNames,dataBySheet:dataBySheet});
-}catch(err){
-reject('文件读取失败：'+err.message);
-}
+}catch(err){reject('文件读取失败：'+err.message)}
 };
-reader.onerror=()=>reject('文件读取失败');
+reader.onerror=function(){reject('文件读取失败')};
 reader.readAsArrayBuffer(file);
 });
 }
@@ -999,7 +1036,7 @@ showLoading('校验原始数据文件...');
 const uploaded=[],rejected=[];
 for(const file of files){
 const ext=file.name.split('.').pop().toLowerCase();
-if(!['xlsx','xls'].includes(ext)){rejected.push({name:file.name,error:'不支持格式 .'+ext});continue;}
+if(!['xlsx','xls','csv'].includes(ext)){rejected.push({name:file.name,error:'不支持格式 .'+ext});continue;}
 if(file.size>500*1024*1024){rejected.push({name:file.name,error:'文件过大('+(file.size/1024/1024).toFixed(0)+'MB)，请拆分后重试'});continue;}
 try{
 const data=await readExcelFile(file);
