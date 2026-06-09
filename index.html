@@ -219,7 +219,7 @@ textarea{min-height:80px;resize:vertical}
 <div class="upload-zone" id="baseUploadZone">
 <div class="upload-icon">&#128194;</div>
 <div class="upload-text">拖拽文件到此处，或点击选择</div>
-<div class="upload-hint">支持 .xlsx、.xls、.csv 格式（大文件建议用 CSV，更省内存）</div>
+<div class="upload-hint">支持 .xlsx、.xls、.csv 格式（大文件建议用 CSV，.xlsx≈200MB上限，.csv≈500MB上限）</div>
 <input type="file" id="baseFileInput" accept=".xlsx,.xls,.csv" onchange="handleBaseFile(this)">
 </div>
 <div id="baseFileInfo"></div>
@@ -251,12 +251,12 @@ textarea{min-height:80px;resize:vertical}
 <div class="upload-zone" id="sourcesUploadZone">
 <div class="upload-icon">&#128193;</div>
 <div class="upload-text">拖拽多个文件到此处，或点击选择</div>
-<div class="upload-hint">支持 .xlsx、.xls、.csv 格式（大文件建议用 CSV，更省内存），可一次选择多个文件</div>
+<div class="upload-hint">支持 .xlsx、.xls、.csv 格式（大文件建议用 CSV，.xlsx≈200MB上限，.csv≈500MB上限），可一次选择多个文件</div>
 <input type="file" id="sourcesFileInput" accept=".xlsx,.xls,.csv" multiple onchange="handleSourceFiles(this)">
 </div>
 <div id="sourcesFileList" style="margin-top:12px"><p class="empty-state" style="padding:16px">尚未上传原始数据文件</p></div>
 <div style="margin-top:8px;padding:8px 12px;background:#fef3c7;border-radius:6px;font-size:11px;color:#92400e;line-height:1.6">
-<strong>&#9888; 大文件提示：</strong>Excel 格式建议 500MB 以内。Excel 受浏览器内存限制，建议 500MB 以内。GB 级数据请在 Excel 中"另存为 → CSV UTF-8"，CSV 格式更省内存，通常可处理 1-2GB。
+<strong>&#9888; 大文件提示：</strong>Excel 格式建议 500MB 以内。受浏览器内存限制：.xlsx 建议 200MB 以内，.csv 建议 500MB 以内。超大文件请在 Excel 中"另存为 → CSV UTF-8"后上传。
 </div>
 </div>
 <div class="footer-nav"><button class="btn btn-secondary" onclick="goToStep(2)">&#8592; 上一步</button><button class="btn btn-primary" id="btnStep3" disabled onclick="goToStep(4)">下一步 &#8594;</button></div>
@@ -943,7 +943,7 @@ totalSourceUnmatched:totalSourceRows-totalSourceMatched,
 async function handleBaseFile(input) {
 const file=input.files[0];
 if(!file) return;
-if(file.size>500*1024*1024) showFloatingError('文件过大（'+(file.size/1024/1024).toFixed(0)+'MB），建议拆分为小文件或使用本地版（联系客服获取），否则可能处理失败'); else if(file.size>100*1024*1024) showFloatingError('文件较大（'+(file.size/1024/1024).toFixed(0)+'MB），处理可能较慢，建议拆分');
+if(file.size>200*1024*1024) showFloatingError('文件较大（'+(file.size/1024/1024).toFixed(0)+'MB），建议拆分为小文件或改用 CSV 格式，否则可能处理失败');
 
 showLoading('读取基准面板数据...');
 try{
@@ -1037,7 +1037,7 @@ const uploaded=[],rejected=[];
 for(const file of files){
 const ext=file.name.split('.').pop().toLowerCase();
 if(!['xlsx','xls','csv'].includes(ext)){rejected.push({name:file.name,error:'不支持格式 .'+ext});continue;}
-if(file.size>500*1024*1024){rejected.push({name:file.name,error:'文件过大('+(file.size/1024/1024).toFixed(0)+'MB)，请拆分后重试'});continue;}
+if(file.size>200*1024*1024){rejected.push({name:file.name,error:'文件过大('+(file.size/1024/1024).toFixed(0)+'MB)，请拆分或改用CSV格式'});continue;}
 try{
 const data=await readExcelFile(file);
 uploaded.push({name:data.name,sheets:data.sheets,dataBySheet:data.dataBySheet,columns:data.dataBySheet[data.sheets[0]].columns,rows:data.dataBySheet[data.sheets[0]].rows.length});
