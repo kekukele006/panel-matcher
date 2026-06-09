@@ -116,6 +116,15 @@
       "start": "2026-06-09",
       "expiry": null,
       "notes": ""
+    },
+    {
+      "name": "15280855154@126.com",
+      "key": "A5F5887D410EF6E7",
+      "tool": "stata",
+      "type": "lifetime",
+      "start": "2026-06-09",
+      "expiry": null,
+      "notes": ""
     }
   ],
   "pricing": {
