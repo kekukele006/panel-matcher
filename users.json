@@ -89,6 +89,15 @@
       "start": "2026-06-09",
       "expiry": null,
       "notes": "司小瑞"
+    },
+    {
+      "name": "18387825393",
+      "key": "95E059583D7291D0",
+      "tool": "stata",
+      "type": "lifetime",
+      "start": "2026-06-09",
+      "expiry": null,
+      "notes": "司小瑞"
     }
   ],
   "pricing": {
