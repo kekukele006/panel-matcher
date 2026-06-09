@@ -98,6 +98,15 @@
       "start": "2026-06-09",
       "expiry": null,
       "notes": "司小瑞"
+    },
+    {
+      "name": "Huahuang",
+      "key": "0CF520B5A9BD56E9",
+      "tool": "matcher",
+      "type": "lifetime",
+      "start": "2026-06-09",
+      "expiry": null,
+      "notes": "华煌"
     }
   ],
   "pricing": {
