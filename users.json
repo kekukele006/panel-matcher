@@ -62,6 +62,15 @@
       "start": "2026-06-09",
       "expiry": null,
       "notes": "雅静"
+    },
+    {
+      "name": "ttyyuu",
+      "key": "A63FB75D4DEC0A5A",
+      "tool": "matcher",
+      "type": "lifetime",
+      "start": "2026-06-09",
+      "expiry": null,
+      "notes": ""
     }
   ],
   "pricing": {
