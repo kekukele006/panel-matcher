@@ -755,7 +755,7 @@ return results;
  */
 function executeMatch() {
 const baseData=STATE.baseFile.currentData;
-let baseRows=JSON.parse(JSON.stringify(baseData.rows));
+let baseRows=baseData.rows.map(function(r){var o={};Object.keys(r).forEach(function(k){o[k]=r[k]});return o});
 
 const config={
 matchMode:document.querySelector('#matchModeGroup .option-tag.selected')?.dataset.value||'contains',
@@ -906,7 +906,7 @@ totalSourceUnmatched:totalSourceRows-totalSourceMatched,
 async function handleBaseFile(input) {
 const file=input.files[0];
 if(!file) return;
-if(file.size>200*1024*1024) showFloatingError('文件较大（>200MB），处理可能较慢');
+if(file.size>500*1024*1024) showFloatingError('文件过大（'+(file.size/1024/1024).toFixed(0)+'MB），建议拆分为小文件或使用本地版（联系客服获取），否则可能处理失败'); else if(file.size>100*1024*1024) showFloatingError('文件较大（'+(file.size/1024/1024).toFixed(0)+'MB），处理可能较慢，建议拆分');
 
 showLoading('读取基准面板数据...');
 try{
@@ -990,12 +990,17 @@ async function handleSourceFiles(input) {
 const files=Array.from(input.files);
 if(!files.length) return;
 
+var totalSize=0; files.forEach(function(f){totalSize+=f.size});
+var maxSingle=Math.max.apply(null,files.map(function(f){return f.size}));
+if(totalSize>500*1024*1024) showFloatingError('所有文件合计 '+(totalSize/1024/1024).toFixed(0)+'MB，过大，建议拆分为小文件');
+if(maxSingle>100*1024*1024) showFloatingError('最大单文件 '+(maxSingle/1024/1024).toFixed(0)+'MB，处理可能较慢');
+
 showLoading('校验原始数据文件...');
 const uploaded=[],rejected=[];
-
 for(const file of files){
 const ext=file.name.split('.').pop().toLowerCase();
 if(!['xlsx','xls'].includes(ext)){rejected.push({name:file.name,error:'不支持格式 .'+ext});continue;}
+if(file.size>500*1024*1024){rejected.push({name:file.name,error:'文件过大('+(file.size/1024/1024).toFixed(0)+'MB)，请拆分后重试'});continue;}
 try{
 const data=await readExcelFile(file);
 uploaded.push({name:data.name,sheets:data.sheets,dataBySheet:data.dataBySheet,columns:data.dataBySheet[data.sheets[0]].columns,rows:data.dataBySheet[data.sheets[0]].rows.length});
