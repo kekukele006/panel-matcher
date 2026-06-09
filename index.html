@@ -782,8 +782,8 @@ try{ allResults.push({fileName:sf.name,results:processSourceFile(sf,allKeywords,
 catch(e){ allResults.push({fileName:sf.name,results:[],error:e.message}); }
 });
 
-// 日志 + 收集待合并数据 + 列级统计
-const logRecords=[], mergeGroups=[], colStats=[];
+// 日志 + 收集待合并数据
+const logRecords=[], mergeGroups=[];
 var totalSourceDups=0, totalSourceRows=0, totalSourceMatched=0;
 
 allResults.forEach(r=>{
@@ -792,11 +792,6 @@ r.results.forEach(sr=>{
 if(sr.status==='success'){
 logRecords.push({文件:r.fileName,Sheet:sr.sheet,匹配列:sr.matchedCols.join('、'),数据行数:sr.rowCount,状态:'✅ 成功'});
 mergeGroups.push({fileName:r.fileName,data:sr.data,cols:sr.matchedCols,rowCount:sr.rowCount});
-sr.matchedCols.forEach(function(col){
-var vals=sr.data.map(function(rr){return rr[col]}).filter(function(v){return v!==''&&v!==null&&v!==undefined});
-var nulls=(sr.rowCount||0)-vals.length;
-colStats.push({变量名:col,来源文件:r.fileName,非空值:vals.length,缺失值:nulls,缺失率:nulls+'/'+sr.rowCount});
-});
 }else{
 logRecords.push({文件:r.fileName,Sheet:sr.sheet,匹配列:'',数据行数:0,状态:'⏭️ 跳过（'+sr.reason+'）'});
 }
@@ -830,14 +825,37 @@ totalSourceDups+=mr.dupSource; totalSourceRows+=g.rowCount||data.length; totalSo
 });
 
 var resultCols=Object.keys(baseRows[0]||{});
+var originalColNames=Object.keys(JSON.parse(JSON.stringify(baseData.rows[0]||{})));
+var newColNames=resultCols.filter(function(c){return originalColNames.indexOf(c)<0});
+
+// 基于合并后实际数据计算列级统计
+var colStats=[], warnings=[];
+var totalRows=baseRows.length;
+newColNames.forEach(function(col){
+var nonNull=0, infoFile='';
+mergeGroups.forEach(function(g){
+if(g.cols.indexOf(col)>-1) infoFile=g.fileName;
+});
+// 处理重命名后的列名
+if(!infoFile){
+mergeGroups.forEach(function(g){
+g.cols.forEach(function(oc){if(col.indexOf(oc+'__')===0||oc.indexOf(col+'__')===0) infoFile=g.fileName;});
+});
+}
+baseRows.forEach(function(row){
+if(row[col]!==''&&row[col]!==null&&row[col]!==undefined) nonNull++;
+});
+var nulls=totalRows-nonNull;
+var pct=totalRows>0?Math.round(nulls/totalRows*100):0;
+colStats.push({变量名:col,来源文件:infoFile||'未知',非空值:nonNull,缺失值:nulls,缺失率:pct+'%'});
+});
 
 // 质量警告
-var warnings=[];
 colStats.forEach(function(cs){
-var parts=cs['缺失率'].split('/');
-var pct=parts.length===2&&parseInt(parts[1])>0 ? parseInt(parts[0])/parseInt(parts[1]) : 0;
-if(pct>=1) warnings.push({level:'error',msg:'变量 '+cs['变量名']+' 全部为缺失值，请检查关键词或数据源'});
-else if(pct>0.5) warnings.push({level:'warn',msg:'变量 '+cs['变量名']+' 缺失过半（'+Math.round(pct*100)+'%），建议核查'});
+var pctStr=cs['缺失率'].replace('%','');
+var pct=parseInt(pctStr)||0;
+if(pct>=100) warnings.push({level:'error',msg:'变量 '+cs['变量名']+' 全部为缺失值，请检查关键词或数据源'});
+else if(pct>50) warnings.push({level:'warn',msg:'变量 '+cs['变量名']+' 缺失过半（'+pct+'%），建议核查'});
 });
 
 // 生成报告
@@ -1151,7 +1169,7 @@ reportHtml+='</tbody></table>';
 if(r.colStats&&r.colStats.length>0){
 reportHtml+='<h4 style=\"font-size:13px;margin-bottom:8px\">列级统计</h4><div class=\"preview-table-wrapper\" style=\"max-height:200px\"><table class=\"preview-table\"><thead><tr><th>变量名</th><th>来源文件</th><th>非空值</th><th>缺失值</th><th>缺失率</th></tr></thead><tbody>';
 r.colStats.forEach(function(cs){
-var parts=cs['缺失率'].split('/'); var pct=parts.length===2&&parseInt(parts[1])>0?Math.round(parseInt(parts[0])/parseInt(parts[1])*100):0;
+var pct=parseInt(cs['缺失率'].replace('%',''))||0;
 var cls=pct>=50?' style=\"color:var(--error)\"':'';
 reportHtml+='<tr><td>'+escapeHtml(cs['变量名'])+'</td><td style=\"font-size:11px;color:var(--gray-500)\">'+escapeHtml(cs['来源文件'])+'</td><td>'+cs['非空值']+'</td><td>'+cs['缺失值']+'</td><td'+cls+'>'+pct+'%</td></tr>';
 });
