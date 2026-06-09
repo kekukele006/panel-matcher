@@ -53,6 +53,15 @@
       "start": "2026-06-09",
       "expiry": null,
       "notes": "雅静"
+    },
+    {
+      "name": "转角处_0616",
+      "key": "E22692A19DC94FD9",
+      "tool": "stata",
+      "type": "lifetime",
+      "start": "2026-06-09",
+      "expiry": null,
+      "notes": "雅静"
     }
   ],
   "pricing": {
