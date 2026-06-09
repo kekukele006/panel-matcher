@@ -125,6 +125,15 @@
       "start": "2026-06-09",
       "expiry": null,
       "notes": "王逾婷"
+    },
+    {
+      "name": "Fangruonan",
+      "key": "DBBF08CF1466137",
+      "tool": "matcher",
+      "type": "lifetime",
+      "start": "2026-06-09",
+      "expiry": null,
+      "notes": ""
     }
   ],
   "pricing": {
