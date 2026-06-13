@@ -143,6 +143,15 @@
       "start": "2026-06-13",
       "expiry": null,
       "notes": "转发点赞"
+    },
+    {
+      "name": "sjl18678109352@126.com",
+      "key": "0A9B25287FDD588F",
+      "tool": "matcher",
+      "type": "lifetime",
+      "start": "2026-06-13",
+      "expiry": null,
+      "notes": "转发点赞"
     }
   ],
   "pricing": {
