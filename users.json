@@ -161,6 +161,15 @@
       "start": "2026-06-16",
       "expiry": null,
       "notes": "佳菲"
+    },
+    {
+      "name": "876133805@qq.com",
+      "key": "BBA1B0DF8CA4F298",
+      "tool": "matcher",
+      "type": "lifetime",
+      "start": "2026-07-01",
+      "expiry": null,
+      "notes": ""
     }
   ],
   "pricing": {
